@@ -191,6 +191,31 @@
         let currentMode = 'db'; // 'db' ou 'sim'
         let calcTarget = 'margem'; // 'margem' ou 'preco'
 
+        // --- LÓGICA DE CANAIS (TRAVA SHOPEE EM 20%) ---
+        window.atualizarTaxasCanal = function() {
+            let canal = $('#canal').val();
+            let comissaoInput = $('#comissao');
+
+            // 1. Reseta o estado (destrava o campo por padrão)
+            comissaoInput.prop('readonly', false).removeClass('bg-secondary bg-opacity-10');
+
+            if (canal === 'Shopee') {
+                // REGRA: Fixa em 20% e bloqueia edição (Fica cinza)
+                comissaoInput.val(20.0);
+                comissaoInput.prop('readonly', true).addClass('bg-secondary bg-opacity-10');
+            } 
+            else if (canal === 'Mercado Livre') {
+                comissaoInput.val(16.5); // Sugestão inicial
+            } 
+            else {
+                comissaoInput.val(0.0); // Site Próprio
+            }
+        };
+
+        // Ativa a função sempre que mudar o Canal no select
+        $('#canal').on('change', window.atualizarTaxasCanal);
+
+
         // --- LÓGICA DE TOGGLE (DB vs SIMULAÇÃO) ---
         window.toggleMode = function(mode) {
             currentMode = mode;
@@ -361,4 +386,5 @@
         };
     });
 </script>
+
 {% endblock %}
