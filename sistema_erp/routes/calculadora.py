@@ -6,17 +6,16 @@ calculadora_bp = Blueprint('calculadora', __name__)
 
 @calculadora_bp.route('/calculadora')
 def index():
-    # Carrega produtos para o Select2
     produtos = run_query("SELECT id, sku, nome FROM produtos ORDER BY nome")
     lista_produtos = produtos.to_dict('records') if not produtos.empty else []
     return render_template('calculadora.html', produtos=lista_produtos)
 
-# --- API 1: Busca dados do Produto (Modo Banco de Dados) ---
+# --- API 1: Busca dados do Produto ---
 @calculadora_bp.route('/api/produto/<int:prod_id>')
 def get_produto_info(prod_id):
-    # Peso fixo 0.5kg por enquanto (até ter coluna peso)
     sql = """
-        SELECT preco_final as custo, 0.5 as peso 
+        SELECT preco_final as custo, 
+               COALESCE(peso, 0.5) as peso 
         FROM produtos WHERE id = :id
     """
     df = run_query(sql, {'id': prod_id})
@@ -29,12 +28,10 @@ def get_produto_info(prod_id):
         'peso': prod['peso']
     })
 
-# --- API 2: Simula Custo de Compra (Modo Simulação) ---
+# --- API 2: Simula Custo de Compra ---
 @calculadora_bp.route('/api/simular_custo', methods=['POST'])
 def simular_custo_api():
     data = request.json
-    
-    # Chama a mesma função que usamos na tela de Nova Entrada
     resultado = calcular_custo_aquisicao(
         pc=data.get('preco_nota', 0),
         frete=data.get('frete', 0),
@@ -45,10 +42,9 @@ def simular_custo_api():
         cofins=data.get('cofins', 0),
         l_real=data.get('lucro_real', False)
     )
-    
-    return jsonify(resultado) # Retorna {custo_final: ..., creditos: ...}
+    return jsonify(resultado)
 
-# --- API 3: Calcula Venda (Cenário) ---
+# --- API 3: Calcula Venda (Com DIFAL e Lógicas Novas) ---
 @calculadora_bp.route('/api/calcular', methods=['POST'])
 def calcular_ajax():
     data = request.json

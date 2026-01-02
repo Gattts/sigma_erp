@@ -2,437 +2,493 @@
    1. VARIÁVEIS DE TEMA E CORES
    ========================================= */
 :root {
-    --primary-blue: #0067E6;
-    --secondary-blue: #2464B3;
-    --sidebar-bg: #1e2228;
-    
-    /* MODO CLARO (Padrão) */
-    --bg-body: #f0f2f5;
-    --bg-card: #ffffff;
-    --bg-panel: #f8f9fa;
-    --text-main: #2c3e50;
-    --text-muted: #6c757d;
-    --border-color: #e9ecef;
-    --input-bg: #ffffff;
-    --input-border: #ced4da;
-    --shadow-card: 0 2px 10px rgba(0,0,0,0.03);
+  --primary-blue: #0067e6;
+  --secondary-blue: #2464b3;
+  --sidebar-bg: #1e2228;
+
+  /* MODO CLARO (Padrão) */
+  --bg-body: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-panel: #f8f9fa;
+  --text-main: #2c3e50;
+  --text-muted: #6c757d;
+  --border-color: #e9ecef;
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.03);
+  --modal-overlay: rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="dark"] {
-    /* MODO ESCURO */
-    --bg-body: #121416;
-    --bg-card: #1b1e21;
-    --bg-panel: #212529;
-    --text-main: #e0e0e0;
-    --text-muted: #a0a0a0;
-    --border-color: #2d3238;
-    --input-bg: #212529;
-    --input-border: #343a40;
-    --shadow-card: 0 4px 20px rgba(0,0,0,0.4);
+  /* MODO ESCURO */
+  --bg-body: #121416;
+  --bg-card: #1b1e21;
+  --bg-panel: #212529; /* Cor usada em headers de modal/cards */
+  --text-main: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --border-color: #2d3238;
+  --input-bg: #141618; /* Um pouco mais escuro que o card */
+  --input-border: #343a40;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --modal-overlay: rgba(0, 0, 0, 0.7);
 }
 
 /* =========================================
    2. ESTRUTURA GERAL
    ========================================= */
-body { 
-    background-color: var(--bg-body);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: var(--text-main);
-    transition: background 0.3s ease, color 0.3s ease;
-    overflow-x: hidden;
+body {
+  background-color: var(--bg-body);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-main);
+  transition: background 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
 }
 
 /* =========================================
    3. SIDEBAR (BARRA LATERAL)
    ========================================= */
-.sidebar { 
-    width: 260px;
-    height: 100vh;
-    background-color: var(--sidebar-bg); 
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    padding: 20px 15px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    border-right: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 4px 0 10px rgba(0,0,0,0.05);
-    transition: width 0.3s ease;
-    overflow-x: hidden; 
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  background-color: var(--sidebar-bg);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 15px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+  transition: width 0.3s ease;
+  overflow-x: hidden;
 }
 
-/* Estado FECHADO (Colapsado) */
 .sidebar.collapsed {
-    width: 80px; 
+  width: 80px;
 }
 
 /* Cabeçalho da Sidebar */
 .sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 30px;
-    white-space: nowrap;
-    min-height: 40px; /* Garante altura mínima */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  white-space: nowrap;
+  min-height: 40px;
 }
 
 .sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #fff;
-    text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
 }
 .sidebar-brand i {
-    color: var(--primary-blue);
-    background: white;
-    padding: 8px;
-    border-radius: 8px;
-    font-size: 1rem;
-    min-width: 35px;
-    text-align: center;
+  color: var(--primary-blue);
+  background: white;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 35px;
+  text-align: center;
 }
 
-/* --- LÓGICA DE EXIBIÇÃO AO FECHAR --- */
-
-/* Esconde textos quando fechado */
+/* Lógica de Colapso */
 .sidebar.collapsed .sidebar-brand span,
 .sidebar.collapsed .sidebar-nav a span,
 .sidebar.collapsed .btn-logout span {
-    display: none;
+  display: none;
 }
-
-/* Quando fechado: Esconde a Logo inteira para dar espaço ao botão */
 .sidebar.collapsed .sidebar-brand {
-    display: none; 
+  display: none;
 }
-
-/* Quando fechado: Centraliza o botão de Toggle */
 .sidebar.collapsed .sidebar-header {
-    justify-content: center;
-    padding-left: 0;
+  justify-content: center;
+  padding-left: 0;
 }
 
-/* Botão Toggle (Seta/Hambúrguer) */
 .btn-toggle-sidebar {
-    background: transparent;
-    border: none;
-    color: #aeb9c6;
-    cursor: pointer;
-    font-size: 1.3rem;
-    padding: 5px;
-    display: block; /* Garante que sempre aparece */
+  background: transparent;
+  border: none;
+  color: #aeb9c6;
+  cursor: pointer;
+  font-size: 1.3rem;
+  padding: 5px;
+  display: block;
 }
-.btn-toggle-sidebar:hover { color: white; }
+.btn-toggle-sidebar:hover {
+  color: white;
+}
 
 /* Links de Navegação */
 .sidebar-nav {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    overflow-y: auto;
-    overflow-x: hidden;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-nav a {
-    color: #aeb9c6;
-    text-decoration: none;
-    padding: 12px 14px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-weight: 500;
-    white-space: nowrap;
-    transition: all 0.2s;
+  color: #aeb9c6;
+  text-decoration: none;
+  padding: 12px 14px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
 
 .sidebar-nav a i {
-    font-size: 1.2rem;
-    min-width: 25px;
-    text-align: center;
+  font-size: 1.2rem;
+  min-width: 25px;
+  text-align: center;
 }
-
-/* Centraliza ícones quando fechado */
-.sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 12px 0; }
+.sidebar.collapsed .sidebar-nav a {
+  justify-content: center;
+  padding: 12px 0;
+}
 
 .sidebar-nav a:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #fff;
-    transform: translateX(4px);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  transform: translateX(4px);
 }
-.sidebar.collapsed .sidebar-nav a:hover { transform: none; }
+.sidebar.collapsed .sidebar-nav a:hover {
+  transform: none;
+}
 
 .sidebar-nav a.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 600;
 }
-.sidebar-nav a.active i { color: var(--primary-blue); }
+.sidebar-nav a.active i {
+  color: var(--primary-blue);
+}
 
 /* Rodapé Sidebar */
 .sidebar-footer {
-    border-top: 1px solid rgba(255,255,255,0.1);
-    padding-top: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .btn-logout {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border: none;
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    font-weight: 600;
-    transition: background 0.2s;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 600;
+  transition: background 0.2s;
 }
-.btn-logout:hover { background-color: rgba(255, 255, 255, 0.2); }
+.btn-logout:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
 
-/* Botão Tema */
 .btn-theme-toggle {
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.05);
-    color: #aeb9c6;
-    border-radius: 8px;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: 0.2s;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #aeb9c6;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
 }
-.btn-theme-toggle:hover { color: white; background: rgba(0,0,0,0.4); }
+.btn-theme-toggle:hover {
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+}
 
 /* =========================================
    4. CONTEÚDO PRINCIPAL (LAYOUT)
    ========================================= */
-.content { 
-    margin-left: 260px;
-    padding: 30px;
-    width: calc(100% - 260px);
-    transition: margin-left 0.3s ease, width 0.3s ease;
+.content {
+  margin-left: 260px;
+  padding: 30px;
+  width: calc(100% - 260px);
+  transition: margin-left 0.3s ease, width 0.3s ease;
 }
-
 .sidebar.collapsed ~ .content {
-    margin-left: 80px;
-    width: calc(100% - 80px);
+  margin-left: 80px;
+  width: calc(100% - 80px);
 }
 
 /* =========================================
-   5. CARDS, INPUTS E COMPONENTES
+   5. COMPONENTES: CARDS, INPUTS, MODAIS
    ========================================= */
-.st-card, .calc-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: var(--shadow-card);
-    margin-bottom: 24px;
+.st-card,
+.calc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 24px;
 }
 
 .st-header {
-    color: var(--text-main);
-    font-weight: 700;
-    font-size: 1.1rem;
-    margin-bottom: 25px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
-    letter-spacing: -0.5px;
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .bg-panel {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
 }
 
-/* Inputs */
-.form-control, .form-select, .input-group-text {
-    background-color: var(--input-bg);
-    border-color: var(--input-border);
-    color: var(--text-main);
-    border-radius: 8px;
-    padding: 10px 12px;
+/* --- INPUTS --- */
+.form-control,
+.form-select,
+.input-group-text {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-main);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--input-bg);
+  border-color: var(--primary-blue);
+  color: var(--text-main);
+  box-shadow: 0 0 0 3px rgba(0, 103, 230, 0.2);
+}
+.form-control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
 }
 
-.form-control:focus, .form-select:focus {
-    background-color: var(--input-bg);
-    border-color: var(--primary-blue);
-    color: var(--text-main);
-    box-shadow: 0 0 0 3px rgba(0, 103, 230, 0.2);
-}
-
-.form-control::placeholder { color: var(--text-muted); opacity: 0.5; }
-
-/* Campos Bloqueados */
+/* Input Readonly/Disabled */
+.form-control:disabled,
+.form-control[readonly],
 .bg-readonly {
-    background-color: rgba(0,0,0,0.04) !important;
-    border-color: transparent !important;
-    color: var(--text-muted);
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-color: transparent !important;
+  color: var(--text-muted);
 }
+[data-theme="dark"] .form-control:disabled,
+[data-theme="dark"] .form-control[readonly],
 [data-theme="dark"] .bg-readonly {
-    background-color: rgba(255,255,255,0.05) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
+/* Labels e Textos */
 label {
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
 }
-.text-muted { color: var(--text-muted) !important; }
-.text-primary { color: var(--primary-blue) !important; }
+.text-muted {
+  color: var(--text-muted) !important;
+}
+.text-primary {
+  color: var(--primary-blue) !important;
+}
 
-/* Botões */
-.btn-primary { background-color: var(--primary-blue); border-color: var(--primary-blue); }
-.btn-primary:hover { background-color: var(--secondary-blue); border-color: var(--secondary-blue); }
+/* --- BOTÕES --- */
+.btn-primary {
+  background-color: var(--primary-blue);
+  border-color: var(--primary-blue);
+}
+.btn-primary:hover {
+  background-color: var(--secondary-blue);
+  border-color: var(--secondary-blue);
+}
 
-.btn-outline-secondary { color: var(--text-muted); border-color: var(--input-border); }
-.btn-outline-secondary:hover { background-color: var(--bg-panel); color: var(--text-main); }
+.btn-outline-secondary {
+  color: var(--text-muted);
+  border-color: var(--input-border);
+}
+.btn-outline-secondary:hover {
+  background-color: var(--bg-panel);
+  color: var(--text-main);
+}
 
-/* Abas de Navegação (Para Calculadora) */
-.nav-tabs .nav-link { 
-    color: var(--text-muted); 
-    border: none; 
-    font-weight: 600; 
-    transition: all 0.2s;
-    border-radius: 8px;
-    padding: 10px 20px;
+/* --- MODAIS E TOASTS --- */
+.modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+}
+.modal-header,
+.modal-footer {
+  border-color: var(--border-color);
+}
+/* Força o bg-panel nos cabeçalhos de modal para consistência */
+.modal-header.bg-panel {
+  background-color: var(--bg-panel) !important;
+}
+
+/* Toast Notification */
+.toast {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+}
+
+/* Spinner Loading */
+.spinner-border {
+  border-color: var(--primary-blue);
+  border-right-color: transparent;
+}
+
+/* Abas (Tabs) */
+.nav-tabs .nav-link {
+  color: var(--text-muted);
+  border: none;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 20px;
 }
 .nav-tabs .nav-link:hover {
-    color: var(--primary-blue);
-    background-color: rgba(0, 103, 230, 0.05);
+  color: var(--primary-blue);
+  background-color: rgba(0, 103, 230, 0.05);
 }
-.nav-tabs .nav-link.active { 
-    color: var(--primary-blue); 
-    background-color: rgba(0, 103, 230, 0.1);
-    border-bottom: none;
-}
-
-/* Estilos de Linhas da Calculadora */
-.result-row { 
-    display: flex; 
-    justify-content: space-between; 
-    padding: 6px 0; 
-    font-size: 0.95rem; 
-    border-bottom: 1px dashed var(--border-color);
-    color: var(--text-main);
-}
-.result-row:last-child { border-bottom: none; }
-.result-val { font-weight: 600; font-family: 'Consolas', monospace; }
-
-/* Cards da Home (Hover) */
-.hover-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-    border-color: var(--primary-blue);
-}
-[data-theme="dark"] .hover-card:hover {
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4) !important;
-}
-
-/* Sticky Summary */
-.sticky-summary {
-    position: sticky;
-    top: 20px;
-    z-index: 90;
-}
-
-/* Select2 Dark Mode */
-[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
-    background-color: var(--input-bg);
-    border-color: var(--input-border);
-    color: var(--text-main);
-}
-[data-theme="dark"] .select2-dropdown {
-    background-color: var(--bg-card);
-    border-color: var(--border-color);
-    color: var(--text-main);
-}
-[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    color: var(--text-main);
+.nav-tabs .nav-link.active {
+  color: var(--primary-blue);
+  background-color: rgba(0, 103, 230, 0.1);
 }
 
 /* =========================================
-   6. ESTILIZAÇÃO DE TABELAS
+   6. TABELAS
    ========================================= */
 .table {
-    color: var(--text-main);
-    border-color: var(--border-color);
-    margin-bottom: 0;
+  color: var(--text-main);
+  border-color: var(--border-color);
+  margin-bottom: 0;
 }
-
 .table thead th {
-    background-color: transparent;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700;
-    border-bottom: 2px solid var(--border-color);
-    padding-bottom: 12px;
+  background-color: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 12px;
 }
-
 .table tbody td {
-    background-color: transparent;
-    border-bottom: 1px solid var(--border-color);
-    padding: 16px 10px;
-    vertical-align: middle;
-    color: var(--text-main);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 10px;
+  vertical-align: middle;
+  color: var(--text-main);
 }
-
 .table-hover tbody tr:hover td {
-    background-color: rgba(0, 103, 230, 0.05);
-    color: var(--primary-blue);
-    cursor: pointer;
+  background-color: rgba(0, 103, 230, 0.05);
+  color: var(--primary-blue);
+  cursor: pointer;
 }
-
 [data-theme="dark"] .table-hover tbody tr:hover td {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
 }
-
-.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
 
 /* =========================================
-   7. CORREÇÃO GLOBAL DE DARK MODE
+   7. CORREÇÃO GLOBAL DE DARK MODE (OVERRIDES)
    ========================================= */
-[data-theme="dark"] .text-dark { color: var(--text-main) !important; }
-[data-theme="dark"] .text-body { color: var(--text-main) !important; }
-[data-theme="dark"] .bg-white { background-color: var(--bg-card) !important; color: var(--text-main) !important; }
-[data-theme="dark"] .bg-light { background-color: var(--bg-panel) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
+/* Estas regras sobrescrevem as classes utilitárias do Bootstrap (bg-light, text-dark) quando o tema é escuro */
 
-[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, 
-[data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6,
-[data-theme="dark"] label {
-    color: var(--text-main);
+[data-theme="dark"] .text-dark,
+[data-theme="dark"] .text-body {
+  color: var(--text-main) !important;
 }
 
-[data-theme="dark"] .btn-outline-secondary {
-    border-color: var(--border-color);
-    color: var(--text-muted);
-}
-[data-theme="dark"] .btn-outline-secondary:hover {
-    background-color: var(--bg-panel);
-    color: var(--text-main);
+[data-theme="dark"] .bg-white {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-color) !important;
 }
 
-/* Remove fundo branco de badges no escuro */
+[data-theme="dark"] .bg-light {
+  background-color: var(--bg-panel) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .border {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] label,
+[data-theme="dark"] p {
+  color: var(--text-main);
+}
+
+/* Botão de Fechar (X) invertido no modo escuro */
+[data-theme="dark"] .btn-close,
+[data-theme="dark"] .btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Badges no modo escuro */
 [data-theme="dark"] .badge.bg-light {
-    background-color: rgba(255,255,255,0.1) !important;
-    color: #fff !important;
-    border-color: rgba(255,255,255,0.2) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Modais no modo escuro (Reforço) */
+[data-theme="dark"] .modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+  background-color: var(--bg-panel);
+  border-color: var(--border-color);
+}
+
+/* Select2 (Dropdowns) no modo escuro */
+[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-main);
+}
+[data-theme="dark"] .select2-dropdown {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+[data-theme="dark"]
+  .select2-container--bootstrap-5
+  .select2-selection--single
+  .select2-selection__rendered {
+  color: var(--text-main);
 }
