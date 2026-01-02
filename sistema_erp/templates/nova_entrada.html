@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0 text-body">Nova Entrada</h3>
+        <a href="{{ url_for('produtos.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+            <i class="fa-solid fa-arrow-left"></i> Cancelar
+        </a>
+    </div>
+
+    <form method="POST" id="formEntrada">
+        <div class="row g-4">
+            
+            <div class="col-lg-8">
+                <div class="st-card h-100">
+                    
+                    <div class="mb-5">
+                        <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-box me-2"></i> Dados do Produto</h5>
+                        
+                        <div class="row g-3">
+                            <div class="col-12" id="divSelectProduto">
+                                <label>Buscar Produto</label>
+                                <select class="form-select" id="selectProduto" name="produto_id">
+                                    <option value="">Digite SKU ou Nome...</option>
+                                    {% for p in produtos %}
+                                    <option value="{{ p.id }}" 
+                                            data-fornecedor="{{ p.fornecedor }}"
+                                            data-imp="{{ '1' if p.importacao_propria else '0' }}">
+                                        {{ p.sku }} - {{ p.nome }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4" id="divSkuNovo" style="display:none;">
+                                <label>Novo SKU</label>
+                                <input type="text" name="sku_novo" id="inputSkuNovo" class="form-control">
+                            </div>
+                            <div class="col-md-8" id="divNomeNovo" style="display:none;">
+                                <label>Nome do Produto</label>
+                                <input type="text" name="nome_novo" id="inputNomeNovo" class="form-control">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label>Fornecedor</label>
+                                <input type="text" name="fornecedor" id="inputFornecedor" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Nº Nota Fiscal</label>
+                                <input type="text" name="nro_nf" class="form-control" required>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="checkNovoProduto" name="check_novo_produto">
+                                    <label class="form-check-label small" for="checkNovoProduto">Não encontrou? Cadastrar novo produto</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary opacity-25 my-4">
+
+                    <div>
+                        <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-money-bill-wave me-2"></i> Custos e Impostos</h5>
+
+                        <div class="bg-panel p-3 mb-4 d-flex gap-4 align-items-center">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="checkLucroReal" name="lucro_real" onchange="calcularCusto()">
+                                <label class="form-check-label fw-bold" for="checkLucroReal">Lucro Real</label>
+                            </div>
+                            <div class="vr opacity-25"></div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="checkImp" name="importacao_propria" onchange="alterarTaxasImportacao()">
+                                <label class="form-check-label fw-bold" for="checkImp">Importação</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="text-primary fw-bold">Preço Unit. (R$)</label>
+                                <input type="number" step="0.01" id="preco" name="preco_partida" class="form-control form-control-lg calc-input fw-bold" placeholder="0.00" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Frete Unit. (R$)</label>
+                                <input type="number" step="0.01" id="frete" name="frete" class="form-control form-control-lg calc-input" value="0.00">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Quantidade</label>
+                                <input type="number" name="quantidade" class="form-control form-control-lg" value="1">
+                            </div>
+                        </div>
+
+                        <label class="d-block mb-2 text-muted small text-uppercase fw-bold">Alíquotas (%)</label>
+                        <div class="row g-2">
+                            <div class="col-3">
+                                <input type="number" step="0.01" id="ipi" name="ipi" class="form-control calc-input" placeholder="IPI">
+                                <div class="form-text text-center small">IPI</div>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" step="0.01" id="icms" name="icms" class="form-control calc-input" value="12.00">
+                                <div class="form-text text-center small">ICMS</div>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" step="0.01" id="pis" name="pis" class="form-control calc-input bg-readonly" value="1.65" readonly>
+                                <div class="form-text text-center small">PIS</div>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" step="0.01" id="cofins" name="cofins" class="form-control calc-input bg-readonly" value="7.60" readonly>
+                                <div class="form-text text-center small">COFINS</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="st-card sticky-summary bg-panel border-0 shadow-lg">
+                    <h6 class="text-uppercase text-muted fw-bold mb-4" style="font-size: 0.8rem; letter-spacing: 1px;">Resumo da Operação</h6>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Custo Base</span>
+                        <span class="fw-bold" id="lblBase">R$ 0,00</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-success">Créditos Fiscais</span>
+                        <span class="fw-bold text-success" id="lblCreditoTotal">- R$ 0,00</span>
+                    </div>
+
+                    <div class="p-3 rounded mb-4" style="background-color: rgba(0,0,0,0.03);">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">ICMS</span> <span id="indICMS">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">PIS</span> <span id="indPIS">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">COFINS</span> <span id="indCOFINS">--</span>
+                        </div>
+                    </div>
+
+                    <div class="border-top border-secondary opacity-25 mb-3"></div>
+
+                    <div class="text-center">
+                        <small class="text-muted">Custo Final Unitário</small>
+                        <div class="display-5 fw-bold text-primary my-2" id="lblFinal">R$ 0,00</div>
+                        <input type="hidden" name="custo_final_calculado" id="inputCustoFinal">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 mt-3 fw-bold rounded-3">
+                        Confirmar Lançamento
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#selectProduto').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Busque o produto...' });
+        
+        $('#selectProduto').on('select2:select', function (e) {
+            var el = $(e.params.data.element);
+            var forn = el.data('fornecedor');
+            var isImp = el.data('imp');
+            if(forn && forn !== 'None') $('#inputFornecedor').val(forn);
+            $('#checkImp').prop('checked', (isImp == '1')).trigger('change');
+        });
+
+        $('#checkNovoProduto').change(function() {
+            if(this.checked) {
+                $('#divSelectProduto').hide(); 
+                $('#divSkuNovo, #divNomeNovo').show();
+                $('#selectProduto').val(null).trigger('change');
+            } else {
+                $('#divSelectProduto').show(); 
+                $('#divSkuNovo, #divNomeNovo').hide();
+            }
+        });
+
+        window.alterarTaxasImportacao = function() {
+            let isImport = $('#checkImp').is(':checked');
+            if(isImport) {
+                $('#pis').val('2.10'); $('#cofins').val('9.65');
+            } else {
+                $('#pis').val('1.65'); $('#cofins').val('7.60');
+            }
+            calcularCusto();
+        }
+
+        window.calcularCusto = function() {
+            let preco = parseFloat($('#preco').val()) || 0;
+            let frete = parseFloat($('#frete').val()) || 0;
+            let ipiPerc = parseFloat($('#ipi').val()) || 0;
+            let icmsPerc = parseFloat($('#icms').val()) || 0;
+            let pisPerc = parseFloat($('#pis').val()) || 0;
+            let cofinsPerc = parseFloat($('#cofins').val()) || 0;
+            let isLucroReal = $('#checkLucroReal').is(':checked');
+
+            let valIpi = preco * (ipiPerc / 100);
+            let valIcms = preco * (icmsPerc / 100);
+            let valPis = preco * (pisPerc / 100);
+            let valCofins = preco * (cofinsPerc / 100);
+
+            let baseCusto = preco + frete + valIpi;
+            let totalCreditos = 0;
+            
+            const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            if (isLucroReal) {
+                totalCreditos = valIcms + valPis + valCofins;
+                $('#indICMS').text(fmt.format(valIcms));
+                $('#indPIS').text(fmt.format(valPis));
+                $('#indCOFINS').text(fmt.format(valCofins));
+            } else {
+                totalCreditos = 0;
+                $('#indICMS, #indPIS, #indCOFINS').text('--');
+            }
+
+            let custoFinal = baseCusto - totalCreditos;
+
+            $('#lblBase').text(fmt.format(baseCusto));
+            $('#lblCreditoTotal').text((isLucroReal ? '- ' : '') + fmt.format(totalCreditos));
+            $('#lblFinal').text(fmt.format(custoFinal));
+            $('#inputCustoFinal').val(custoFinal.toFixed(4));
+        };
+
+        $('.calc-input').on('input', calcularCusto);
+        calcularCusto(); 
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold mb-3">
+            Bem-vindo ao <span class="text-primary">SIGMA ERP</span> 🚀
+        </h1>
+        <p class="lead text-muted">
+            Selecione um módulo abaixo para começar a operar.
+        </p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        
+        <div class="col-md-6 col-lg-4">
+            <div class="st-card h-100 p-4 text-center hover-card transition-up">
+                <div class="mb-3">
+                    <i class="fa-solid fa-box text-primary fa-3x"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Produtos</h4>
+                <p class="text-muted small mb-4">Gerencie seu estoque, visualize custos e histórico de entradas.</p>
+                <a href="{{ url_for('produtos.index') }}" class="btn btn-primary w-100 fw-bold">
+                    Acessar Estoque
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="st-card h-100 p-4 text-center hover-card transition-up">
+                <div class="mb-3">
+                    <i class="fa-solid fa-calculator text-success fa-3x"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Calculadora</h4>
+                <p class="text-muted small mb-4">Precificação inteligente com análise de margem e impostos.</p>
+                <a href="{{ url_for('calculadora.index') }}" class="btn btn-primary w-100 fw-bold">
+                    Calcular Preço
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="st-card h-100 p-4 text-center hover-card transition-up">
+                <div class="mb-3">
+                    <i class="fa-solid fa-cart-plus text-warning fa-3x"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Nova Entrada</h4>
+                <p class="text-muted small mb-4">Lance notas fiscais, calcule impostos e atualize o custo.</p>
+                <a href="{{ url_for('compras.nova_entrada') }}" class="btn btn-primary w-100 fw-bold">
+                    Lançar Nota
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="st-card h-100 p-4 text-center hover-card transition-up" style="opacity: 0.8;">
+                <div class="mb-3">
+                    <i class="fa-solid fa-money-bill-wave text-secondary fa-3x"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Financeiro</h4>
+                <p class="text-muted small mb-4">Contas a pagar, receber e fluxo de caixa.</p>
+                <a href="{{ url_for('financeiro.index') }}" class="btn btn-primary w-100 fw-bold">
+                    Acessar
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Pequeno efeito de hover para os cards da home */
+    .transition-up { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        border-color: var(--primary-blue);
+    }
+    [data-theme="dark"] .hover-card:hover {
+        box-shadow: 0 10px 20px rgba(0,0,0,0.4) !important;
+    }
+</style>
+{% endblock %}

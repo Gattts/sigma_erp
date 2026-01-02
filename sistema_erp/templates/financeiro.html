@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>💸 Contas a Pagar</h2>
+        <div class="card bg-danger text-white">
+            <div class="card-body py-2 px-4">
+                <small>Total em Aberto</small>
+                <h3 class="m-0">R$ {{ "{:,.2f}".format(total) }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="fornecedor" class="form-control" placeholder="Fornecedor...">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-search"></i> Buscar</button>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalBaixaMassa">
+                        <i class="fa-solid fa-check-double"></i> Baixa em Massa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="checkAll"></th>
+                        <th>Vencimento</th>
+                        <th>Fornecedor / Doc</th>
+                        <th>Categoria</th>
+                        <th>Valor</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conta in contas %}
+                    <tr>
+                        <td><input type="checkbox" class="form-check-input conta-check" value="{{ conta.id }}"></td>
+                        <td>
+                            {% if conta.vencimento < today %}
+                                <span class="badge bg-danger">{{ conta.vencimento.strftime('%d/%m/%Y') }}</span>
+                            {% elif conta.vencimento == today %}
+                                <span class="badge bg-warning text-dark">HOJE</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ conta.vencimento.strftime('%d/%m/%Y') }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ conta.fornecedor }}</strong><br>
+                            <small class="text-muted">Doc: {{ conta.nro_documento }}</small>
+                        </td>
+                        <td>{{ conta.categoria }}</td>
+                        <td class="fw-bold text-danger">R$ {{ "{:,.2f}".format(conta.valor) }}</td>
+                        <td>
+                            <form action="{{ url_for('financeiro.baixa_individual', id=conta.id) }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Baixar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center py-4">Nenhuma conta pendente! 🎉</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalBaixaMassa" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">🚀 Baixa em Lote (Bling + Local)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="msgQtdSelecionada">Selecione contas na tabela primeiro.</p>
+        
+        <label>Data Pagamento</label>
+        <input type="date" id="dataPagamento" class="form-control mb-3">
+
+        <label>Banco (Portador)</label>
+        <select id="selectBanco" class="form-select mb-3">
+            <option value="12345678">Banco Inter</option>
+            <option value="14888688304">Caixa Econômica</option>
+        </select>
+        
+        <label>Forma de Pagamento</label>
+        <select id="selectForma" class="form-select mb-3">
+            <option value="5983880">PIX</option>
+            <option value="3821505">Boleto</option>
+            <option value="3821504">Dinheiro</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="confirmarBaixaEmMassa()">Confirmar Baixa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    // 1. Checkbox "Marcar Todos"
+    document.getElementById('checkAll').addEventListener('change', function() {
+        let checkboxes = document.querySelectorAll('.conta-check');
+        for(let cb of checkboxes) { cb.checked = this.checked; }
+        atualizarQtd();
+    });
+
+    // 2. Monitorar seleção para atualizar texto do modal
+    document.querySelectorAll('.conta-check').forEach(cb => {
+        cb.addEventListener('change', atualizarQtd);
+    });
+
+    function atualizarQtd() {
+        let qtd = document.querySelectorAll('.conta-check:checked').length;
+        document.getElementById('msgQtdSelecionada').innerText = `Você selecionou ${qtd} contas para pagar.`;
+    }
+
+    // 3. Função que envia para o Python
+    function confirmarBaixaEmMassa() {
+        // Coleta IDs
+        let ids = [];
+        document.querySelectorAll('.conta-check:checked').forEach(cb => ids.push(cb.value));
+
+        if (ids.length === 0) {
+            alert("Selecione pelo menos uma conta!");
+            return;
+        }
+
+        // Dados do Modal
+        let banco = document.getElementById('selectBanco').value;
+        let forma = document.getElementById('selectForma').value;
+        let dt = document.getElementById('dataPagamento').value || new Date().toISOString().split('T')[0];
+
+        // Envia para o Backend (Flask)
+        fetch('/financeiro/baixa_lote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids, banco_id: banco, forma_id: forma, data_pagamento: dt })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                alert(data.msg);
+                location.reload(); // Recarrega a página para atualizar a tabela
+            } else {
+                alert("Erro: " + data.msg);
+            }
+        })
+        .catch(error => console.error('Erro:', error));
+    }
+    
+    // Define a data de hoje no input ao abrir
+    document.getElementById('dataPagamento').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

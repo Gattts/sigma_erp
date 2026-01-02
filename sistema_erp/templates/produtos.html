@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-md-6">
+            <h3 class="fw-bold m-0">Cadastro de Produtos</h3>
+            <p class="text-muted small m-0">Gerencie seu estoque e visualize custos</p>
+        </div>
+
+        <div class="col-md-6">
+            <div class="d-flex gap-2 justify-content-md-end">
+                <form method="GET" action="{{ url_for('produtos.index') }}" class="d-flex flex-grow-1" style="max-width: 300px;">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" 
+                               placeholder="Buscar nome ou SKU..." 
+                               value="{{ request.args.get('q', '') }}">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <a href="{{ url_for('compras.nova_entrada') }}" class="btn btn-primary fw-bold px-4 d-flex align-items-center">
+                    <i class="fa-solid fa-plus me-2"></i> Nova Entrada
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="st-card p-0 overflow-hidden">
+        {% if produtos %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Produto</th>
+                        <th>Fornecedor</th>
+                        <th class="text-center">Estoque</th>
+                        <th class="text-end">Custo Atual</th>
+                        <th class="text-center pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ p.nome }}</div>
+                            <span class="badge bg-light text-dark border mt-1">{{ p.sku }}</span>
+                        </td>
+                        <td class="text-muted small">{{ p.fornecedor or '---' }}</td>
+                        <td class="text-center">
+                            {% if p.quantidade > 0 %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3">{{ p.quantidade }} un</span>
+                            {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3">Zerado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold text-success">
+                            R$ {{ "%.2f"|format(p.preco_final) }}
+                        </td>
+                        <td class="text-center pe-4">
+                            <button type="button" 
+                                    class="btn btn-outline-secondary btn-sm" 
+                                    onclick="abrirHistorico(this.dataset.id, this.dataset.nome)"
+                                    data-id="{{ p.id }}"
+                                    data-nome="{{ p.nome }}"
+                                    title="Ver Histórico Completo">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3"><i class="fa-solid fa-box-open fs-1 text-muted opacity-25"></i></div>
+                <h6 class="text-muted">Nenhum produto encontrado.</h6>
+                {% if request.args.get('q') %}
+                    <a href="{{ url_for('produtos.index') }}" class="btn btn-link text-decoration-none">Limpar busca</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            
+            <div class="modal-header bg-panel border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold" id="modalTitulo">Histórico</h5>
+                    <p class="text-muted small m-0 mb-1">Detalhamento completo de custos e impostos por entrada</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabelaHistorico" style="font-size: 0.9rem;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Data</th>
+                                <th>Origem</th> <th class="text-center">Qtd</th>
+                                <th class="text-end">Preço NF</th>
+                                <th class="text-end">Frete</th>
+                                <th>Impostos (%)</th> <th class="text-end pe-4">Custo Final</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabelaHistorico">
+                            </tbody>
+                    </table>
+                </div>
+                
+                <div id="loadingHistorico" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted small mt-2">Carregando dados...</p>
+                </div>
+                <div id="vazioHistorico" class="text-center py-5" style="display:none;">
+                    <i class="fa-solid fa-ghost fs-1 text-muted opacity-25 mb-2"></i>
+                    <p class="text-muted">Nenhum registro encontrado.</p>
+                </div>
+            </div>
+
+            <div class="modal-footer border-top bg-panel">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.abrirHistorico = function(id, nomeProduto) {
+        $('#modalTitulo').text(nomeProduto); // Nome do produto no título
+        $('#corpoTabelaHistorico').empty(); 
+        $('#tabelaHistorico').hide();
+        $('#vazioHistorico').hide();
+        $('#loadingHistorico').show();
+        
+        var myModal = new bootstrap.Modal(document.getElementById('modalHistorico'));
+        myModal.show();
+
+        fetch(`/api/historico/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                $('#loadingHistorico').hide();
+
+                if (data.length === 0) {
+                    $('#vazioHistorico').show();
+                    return;
+                }
+
+                $('#tabelaHistorico').show();
+                const tbody = $('#corpoTabelaHistorico');
+                const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                data.forEach(item => {
+                    // 1. Tags de Regime
+                    let tags = '';
+                    if(item.lucro_real) tags += `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1" title="Lucro Real">Real</span>`;
+                    if(item.importacao_propria) tags += `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" title="Importação Própria">Imp</span>`;
+                    if(!tags) tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary">Simples</span>`;
+
+                    // 2. Formatação dos Impostos (Grid compacta)
+                    // Verifica se tem valor para não mostrar "0.0%" feio
+                    let txtIcms = item.icms ? `${item.icms}%` : '-';
+                    let txtIpi  = item.ipi  ? `${item.ipi}%`  : '-';
+                    let txtPis  = item.pis  ? `${item.pis}%`  : '-';
+                    let txtCof  = item.cofins ? `${item.cofins}%` : '-';
+
+                    let impostosHtml = `
+                        <div class="d-flex gap-3 text-muted" style="font-size: 0.8rem;">
+                            <div>
+                                <span class="fw-bold d-block text-body">ICMS</span> ${txtIcms}
+                            </div>
+                            <div>
+                                <span class="fw-bold d-block text-body">IPI</span> ${txtIpi}
+                            </div>
+                            <div>
+                                <span class="fw-bold d-block text-body">PIS</span> ${txtPis}
+                            </div>
+                            <div>
+                                <span class="fw-bold d-block text-body">COFINS</span> ${txtCof}
+                            </div>
+                        </div>
+                    `;
+
+                    let row = `
+                        <tr>
+                            <td class="ps-4 fw-bold text-muted" style="white-space:nowrap;">${item.data_compra}</td>
+                            
+                            <td>
+                                <div class="fw-bold text-body text-truncate" style="max-width: 150px;">${item.fornecedor || 'Desconhecido'}</div>
+                                <div class="d-flex align-items-center mt-1">
+                                    <small class="text-muted me-2"><i class="fa-solid fa-file-invoice"></i> ${item.nro_nf}</small>
+                                    ${tags}
+                                </div>
+                            </td>
+
+                            <td class="text-center fw-bold text-primary">+${item.quantidade}</td>
+                            
+                            <td class="text-end text-muted">${fmt.format(item.preco_partida)}</td>
+                            <td class="text-end text-muted">${fmt.format(item.frete)}</td>
+                            
+                            <td>${impostosHtml}</td>
+                            
+                            <td class="text-end pe-4 fw-bold text-success fs-6">${fmt.format(item.custo_final)}</td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                $('#loadingHistorico').hide();
+                alert('Erro ao carregar histórico.');
+            });
+    }
+</script>
+
+<style>
+    /* Estilos do Modal Dark Mode */
+    [data-theme="dark"] .modal-content {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+    }
+    [data-theme="dark"] .modal-header, 
+    [data-theme="dark"] .modal-footer {
+        background-color: var(--bg-panel);
+        border-color: var(--border-color);
+    }
+    [data-theme="dark"] .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+</style>
+{% endblock %}
