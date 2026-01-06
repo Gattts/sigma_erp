@@ -1,148 +1,134 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from utils.db import run_query
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from utils.db import run_query, run_command
 from datetime import datetime
 
 compras_bp = Blueprint('compras', __name__)
 
-# --- ROTA 1: PÁGINA DE NOVA ENTRADA ---
-@compras_bp.route('/nova_entrada', methods=['GET', 'POST'])
+# --- ROTA DA TELA DE NOVA ENTRADA ---
+@compras_bp.route('/nova_entrada')
 def nova_entrada():
-    if request.method == 'GET':
-        df = run_query("SELECT id, sku, nome, fornecedor, importacao_propria FROM produtos ORDER BY nome")
-        produtos = df.to_dict('records') if not df.empty else []
-        return render_template('nova_entrada.html', produtos=produtos)
+    # 1. Lista de Produtos para o Select
+    produtos = run_query("SELECT id, sku, nome FROM produtos ORDER BY nome")
+    lista_produtos = produtos.to_dict('records') if not produtos.empty else []
     
-    # --- PROCESSAMENTO DO POST (SALVAR) ---
-    data = request.form
+    # 2. Lista de Fornecedores para o Datalist
+    sql_forn = "SELECT DISTINCT fornecedor FROM produtos WHERE fornecedor IS NOT NULL ORDER BY fornecedor"
+    df_forn = run_query(sql_forn)
+    lista_fornecedores = df_forn['fornecedor'].tolist() if not df_forn.empty else []
+
+    return render_template('nova_entrada.html', produtos=lista_produtos, fornecedores=lista_fornecedores)
+
+# --- ROTA QUE PROCESSA O FORMULÁRIO ---
+@compras_bp.route('/salvar_entrada', methods=['POST'])
+def salvar_entrada():
+    # 1. Captura dados do formulário
+    produto_id_raw = request.form.get('produto_id') # Se vier do select existente
+    novo_produto_nome = request.form.get('novo_produto_nome') # Se for criar novo
     
-    produto_id = data.get('produto_id')
-    sku_novo = data.get('sku_novo')
+    fornecedor = request.form.get('fornecedor')
+    nro_nf = request.form.get('nro_nf')
+    data_hoje = datetime.now().strftime('%Y-%m-%d')
+
+    # Funções auxiliares de conversão
+    def get_float(name):
+        try: return float(request.form.get(name, '0').replace(',', '.'))
+        except: return 0.0
     
-    # Variáveis para o Histórico
-    nome_prod_hist = ""
-    sku_prod_hist = ""
+    def get_int(name):
+        try: return int(request.form.get(name, '0'))
+        except: return 0
 
-    try:
-        qtd = float(data.get('quantidade', 1))
-        custo_final = float(data.get('custo_final_calculado') or 0)
-        preco_partida = float(data.get('preco_partida') or 0)
-        frete = float(data.get('frete') or 0)
-        ipi = float(data.get('ipi') or 0)
-        icms = float(data.get('icms') or 0)
-        pis = float(data.get('pis') or 0)
-        cofins = float(data.get('cofins') or 0)
-        
-        lucro_real = 'lucro_real' in data
-        importacao = 'importacao_propria' in data
-        fornecedor = data.get('fornecedor')
-        nro_nf = data.get('nro_nf')
-        # Data apenas YYYY-MM-DD pois sua coluna é DATE
-        data_hoje = datetime.now().strftime('%Y-%m-%d') 
+    qtd = get_int('quantidade')
+    preco_unit = get_float('preco_unit')
+    frete_unit = get_float('frete_unit')
+    
+    # Impostos e Custo Final (Calculados no JS, mas salvamos o bruto aqui)
+    # O ideal seria recalcular no backend para segurança, mas vamos confiar no input por enquanto ou salvar o bruto
+    # Para simplificar e manter integridade, vamos salvar o que veio
+    
+    # Como não temos todos os campos de cálculo vindo do form HTML antigo, 
+    # vamos assumir que Custo Final = (Preço + Frete) - Impostos Recuperáveis
+    # Se você quiser salvar exatamente os campos do form:
+    
+    icms = get_float('icms_aliq')
+    ipi = get_float('ipi_aliq')
+    pis = get_float('pis_aliq')
+    cofins = get_float('cofins_aliq')
+    
+    lucro_real = 1 if request.form.get('lucro_real') == 'on' else 0
+    importacao = 1 if request.form.get('importacao') == 'on' else 0
 
-    except ValueError:
-        flash('Erro nos valores numéricos.', 'danger')
-        return redirect(url_for('compras.nova_entrada'))
+    # Cálculo simples de Custo Final (Backend) para garantir consistência
+    custo_final = preco_unit + frete_unit
+    
+    # Se for lucro real, abate impostos
+    creditos = 0.0
+    if lucro_real:
+        # PIS/COFINS recupera
+        creditos += (preco_unit * (pis/100)) + (preco_unit * (cofins/100))
+        # ICMS recupera
+        creditos += (preco_unit * (icms/100))
+    
+    custo_final = custo_final - creditos
 
-    # CENÁRIO A: Produto Novo (Cria antes)
-    if not produto_id and sku_novo:
-        nome_prod_hist = data.get('nome_novo')
-        sku_prod_hist = sku_novo
-        
-        sql_novo = "INSERT INTO produtos (sku, nome, fornecedor, quantidade, preco_final, importacao_propria) VALUES (:sku, :nome, :forn, 0, 0, :imp)"
-        run_query(sql_novo, {'sku': sku_novo, 'nome': nome_prod_hist, 'forn': fornecedor, 'imp': 1 if importacao else 0})
-        
-        df_id = run_query("SELECT id FROM produtos WHERE sku = :sku", {'sku': sku_novo})
+    # 2. Lógica de Produto (Existente ou Novo)
+    produto_id = None
+    
+    if novo_produto_nome:
+        # Cria produto novo básico
+        sql_new = "INSERT INTO produtos (nome, sku, fornecedor, quantidade, preco_final) VALUES (:nome, :sku, :forn, :qtd, :custo)"
+        # Gera um SKU temporário
+        sku_temp = f"NEW-{int(datetime.now().timestamp())}"
+        run_command(sql_new, {
+            'nome': novo_produto_nome, 'sku': sku_temp, 'forn': fornecedor, 
+            'qtd': 0, 'custo': 0.0
+        })
+        # Pega o ID criado
+        df_id = run_query("SELECT id FROM produtos WHERE sku = :sku", {'sku': sku_temp})
         if not df_id.empty:
-            produto_id = df_id.iloc[0]['id']
+            produto_id = int(df_id.iloc[0]['id'])
+    else:
+        try:
+            produto_id = int(produto_id_raw)
+        except:
+            flash('Erro: Produto inválido.', 'danger')
+            return redirect(url_for('compras.nova_entrada'))
 
-    # CENÁRIO B: Produto Existente (Busca Nome/SKU para o histórico)
-    elif produto_id:
-        df_prod = run_query("SELECT sku, nome FROM produtos WHERE id = :id", {'id': produto_id})
-        if not df_prod.empty:
-            sku_prod_hist = df_prod.iloc[0]['sku']
-            nome_prod_hist = df_prod.iloc[0]['nome']
-
-    if not produto_id:
-        flash('Erro: Produto não identificado.', 'danger')
-        return redirect(url_for('compras.nova_entrada'))
-
-    # 1. ATUALIZA O PRODUTO (Estoque Atual)
-    sql_update = """
-        UPDATE produtos 
-        SET quantidade = :qtd, 
-            preco_final = :custo,
-            fornecedor = :forn,
-            importacao_propria = :imp
-        WHERE id = :id
-    """
-    run_query(sql_update, {
-        'qtd': qtd,
-        'custo': custo_final,
-        'forn': fornecedor,
-        'imp': 1 if importacao else 0,
-        'id': produto_id
-    })
-
-    # 2. INSERE NO HISTÓRICO (Com os nomes de colunas CORRETOS do seu banco)
+    # 3. Inserir no Histórico (AGORA COM TODOS OS CAMPOS NOVOS)
     sql_hist = """
         INSERT INTO historico_compras (
-            produto_id, sku, nome_produto, 
-            data_compra, fornecedor, nro_nf, quantidade,
-            preco_partida, frete_rateio, ipi_percent, icms_percent, pis_percent, cofins_percent,
-            custo_final, lucro_real, importacao_propria
+            produto_id, data_compra, nro_nf, fornecedor, quantidade,
+            preco_partida, frete, custo_final,
+            icms, ipi, pis, cofins, lucro_real, importacao_propria
         ) VALUES (
-            :pid, :sku, :nome,
-            :data, :forn, :nf, :qtd,
-            :preco, :frete, :ipi, :icms, :pis, :cofins,
-            :custo, :lr, :imp
+            :pid, :data, :nf, :forn, :qtd,
+            :preco, :frete, :final,
+            :icms, :ipi, :pis, :cofins, :l_real, :imp
         )
     """
-    run_query(sql_hist, {
-        'pid': produto_id,
-        'sku': sku_prod_hist,
-        'nome': nome_prod_hist,
-        'data': data_hoje,
-        'forn': fornecedor,
-        'nf': nro_nf,
-        'qtd': qtd,
-        'preco': preco_partida,
-        'frete': frete,   # Mapeia frete -> frete_rateio
-        'ipi': ipi,       # Mapeia ipi -> ipi_percent
-        'icms': icms,     # Mapeia icms -> icms_percent
-        'pis': pis,       # Mapeia pis -> pis_percent
-        'cofins': cofins, # Mapeia cofins -> cofins_percent
-        'custo': custo_final,
-        'lr': 1 if lucro_real else 0,
-        'imp': 1 if importacao else 0
+    params_hist = {
+        'pid': produto_id, 'data': data_hoje, 'nf': nro_nf, 'forn': fornecedor, 'qtd': qtd,
+        'preco': preco_unit, 'frete': frete_unit, 'final': custo_final,
+        'icms': icms, 'ipi': ipi, 'pis': pis, 'cofins': cofins,
+        'l_real': lucro_real, 'imp': importacao
+    }
+    
+    if not run_command(sql_hist, params_hist):
+        flash('Erro ao salvar no histórico.', 'danger')
+        return redirect(url_for('compras.nova_entrada'))
+
+    # 4. Atualizar Estoque e Preço no Produto Principal
+    # (Poderíamos fazer média ponderada, mas aqui vamos atualizar para o custo atual)
+    sql_update = """
+        UPDATE produtos 
+        SET quantidade = quantidade + :qtd,
+            preco_final = :novo_custo,
+            fornecedor = :forn
+        WHERE id = :id
+    """
+    run_command(sql_update, {
+        'qtd': qtd, 'novo_custo': custo_final, 'forn': fornecedor, 'id': produto_id
     })
 
-    return redirect(url_for('compras.nova_entrada', sucesso=1))
-
-
-# --- ROTA 2: API PARA O MODAL ---
-@compras_bp.route('/api/historico/<int:produto_id>')
-def api_obter_historico(produto_id):
-    # Aqui fazemos o caminho inverso: Lemos do banco com os nomes "feios" (_percent)
-    # e apelidamos (AS) para os nomes "bonitos" que o Javascript espera.
-    sql = """
-        SELECT 
-            data_compra, fornecedor, nro_nf, quantidade, 
-            preco_partida, 
-            frete_rateio as frete, 
-            ipi_percent as ipi, 
-            icms_percent as icms, 
-            pis_percent as pis, 
-            cofins_percent as cofins,
-            custo_final, lucro_real, importacao_propria
-        FROM historico_compras 
-        WHERE produto_id = :pid 
-        ORDER BY id DESC
-    """
-    df = run_query(sql, {'pid': produto_id})
-    
-    if df.empty:
-        return jsonify([])
-    
-    df = df.fillna(0)
-    
-    return jsonify(df.to_dict('records'))
+    flash(f'Entrada registrada com sucesso! Custo atualizado para R$ {custo_final:.2f}', 'success')
+    return redirect(url_for('produtos.index'))

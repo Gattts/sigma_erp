@@ -6,26 +6,30 @@ calculadora_bp = Blueprint('calculadora', __name__)
 
 @calculadora_bp.route('/calculadora')
 def index():
+    # Busca produtos para o Select2
     produtos = run_query("SELECT id, sku, nome FROM produtos ORDER BY nome")
     lista_produtos = produtos.to_dict('records') if not produtos.empty else []
     return render_template('calculadora.html', produtos=lista_produtos)
 
-# --- API 1: Busca dados do Produto ---
+# --- API 1: Busca dados do Produto (Custo + Peso Real) ---
 @calculadora_bp.route('/api/produto/<int:prod_id>')
 def get_produto_info(prod_id):
+    # Agora buscamos o peso real do banco!
     sql = """
         SELECT preco_final as custo, 
-               COALESCE(peso, 0.5) as peso 
+               COALESCE(peso, 0.500) as peso 
         FROM produtos WHERE id = :id
     """
     df = run_query(sql, {'id': prod_id})
+    
     if df.empty:
         return jsonify({'error': 'Produto não encontrado'}), 404
     
     prod = df.iloc[0]
+    
     return jsonify({
-        'custo': prod['custo'],
-        'peso': prod['peso']
+        'custo': float(prod['custo']),
+        'peso': float(prod['peso'])
     })
 
 # --- API 2: Simula Custo de Compra ---
@@ -44,7 +48,7 @@ def simular_custo_api():
     )
     return jsonify(resultado)
 
-# --- API 3: Calcula Venda (Com DIFAL e Lógicas Novas) ---
+# --- API 3: Calcula Venda ---
 @calculadora_bp.route('/api/calcular', methods=['POST'])
 def calcular_ajax():
     data = request.json

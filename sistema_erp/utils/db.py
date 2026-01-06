@@ -5,10 +5,10 @@ from urllib.parse import quote_plus
 
 # --- CONFIGURAÇÃO DO BANCO DE DADOS (ATUALIZADA) ---
 # Se não houver variável de ambiente, usa estes valores padrão (Produção)
-DB_HOST = os.getenv('DB_HOST', 'market-db.clsgwcgyufqp.us-east-2.rds.amazonaws.com')
+DB_HOST = os.getenv('DB_HOST', 'marketmanager.clsgwcgyufqp.us-east-2.rds.amazonaws.com')
 DB_USER = os.getenv('DB_USER', 'admin')
-DB_PASS_RAW = os.getenv('DB_PASS', 'Sigmacomjp25')
-DB_NAME = os.getenv('DB_NAME', 'marketmanager')
+DB_PASS_RAW = os.getenv('DB_PASS', 'sigmacomjp25')
+DB_NAME = os.getenv('DB_NAME', 'sigma_erp')
 
 # Tratamento de segurança para senha (caso tenha @, /, etc)
 encoded_pass = quote_plus(DB_PASS_RAW)
