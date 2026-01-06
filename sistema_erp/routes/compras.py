@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify # Adicionado jsonify
 from utils.db import run_query, run_command
 from datetime import datetime
 
@@ -7,29 +7,30 @@ compras_bp = Blueprint('compras', __name__)
 # --- ROTA DA TELA DE NOVA ENTRADA ---
 @compras_bp.route('/nova_entrada')
 def nova_entrada():
-    # 1. Lista de Produtos para o Select
     produtos = run_query("SELECT id, sku, nome FROM produtos ORDER BY nome")
     lista_produtos = produtos.to_dict('records') if not produtos.empty else []
     
-    # 2. Lista de Fornecedores para o Datalist
     sql_forn = "SELECT DISTINCT fornecedor FROM produtos WHERE fornecedor IS NOT NULL ORDER BY fornecedor"
     df_forn = run_query(sql_forn)
     lista_fornecedores = df_forn['fornecedor'].tolist() if not df_forn.empty else []
 
     return render_template('nova_entrada.html', produtos=lista_produtos, fornecedores=lista_fornecedores)
 
-# --- ROTA QUE PROCESSA O FORMULÁRIO ---
+# --- ROTA QUE PROCESSA O FORMULÁRIO (AGORA RETORNA JSON) ---
 @compras_bp.route('/salvar_entrada', methods=['POST'])
 def salvar_entrada():
-    # 1. Captura dados do formulário
-    produto_id_raw = request.form.get('produto_id') # Se vier do select existente
-    novo_produto_nome = request.form.get('novo_produto_nome') # Se for criar novo
+    # 1. Captura dados
+    produto_id_raw = request.form.get('produto_id')
+    # Verifica checkbox novo (Alguns browsers mandam 'on', outros não mandam nada)
+    check_novo = request.form.get('check_novo_produto')
+    
+    nome_novo = request.form.get('nome_novo')
+    sku_novo = request.form.get('sku_novo')
     
     fornecedor = request.form.get('fornecedor')
     nro_nf = request.form.get('nro_nf')
     data_hoje = datetime.now().strftime('%Y-%m-%d')
 
-    # Funções auxiliares de conversão
     def get_float(name):
         try: return float(request.form.get(name, '0').replace(',', '.'))
         except: return 0.0
@@ -39,62 +40,64 @@ def salvar_entrada():
         except: return 0
 
     qtd = get_int('quantidade')
-    preco_unit = get_float('preco_unit')
-    frete_unit = get_float('frete_unit')
+    preco_unit = get_float('preco_partida')
+    frete_unit = get_float('frete')
     
-    # Impostos e Custo Final (Calculados no JS, mas salvamos o bruto aqui)
-    # O ideal seria recalcular no backend para segurança, mas vamos confiar no input por enquanto ou salvar o bruto
-    # Para simplificar e manter integridade, vamos salvar o que veio
-    
-    # Como não temos todos os campos de cálculo vindo do form HTML antigo, 
-    # vamos assumir que Custo Final = (Preço + Frete) - Impostos Recuperáveis
-    # Se você quiser salvar exatamente os campos do form:
-    
-    icms = get_float('icms_aliq')
-    ipi = get_float('ipi_aliq')
-    pis = get_float('pis_aliq')
-    cofins = get_float('cofins_aliq')
+    icms_rate = get_float('icms')
+    ipi_rate = get_float('ipi')
+    pis_rate = get_float('pis')
+    cofins_rate = get_float('cofins')
     
     lucro_real = 1 if request.form.get('lucro_real') == 'on' else 0
-    importacao = 1 if request.form.get('importacao') == 'on' else 0
+    importacao = 1 if request.form.get('importacao_propria') == 'on' else 0
 
-    # Cálculo simples de Custo Final (Backend) para garantir consistência
-    custo_final = preco_unit + frete_unit
+    # --- CÁLCULO FINANCEIRO ---
+    val_ipi = preco_unit * (ipi_rate / 100)
+    val_icms = preco_unit * (icms_rate / 100)
     
-    # Se for lucro real, abate impostos
+    base_pis_cofins = preco_unit - val_icms
+    if base_pis_cofins < 0: base_pis_cofins = 0
+    
+    val_pis = base_pis_cofins * (pis_rate / 100)
+    val_cofins = base_pis_cofins * (cofins_rate / 100)
+
+    custo_bruto = preco_unit + frete_unit + val_ipi
+    
     creditos = 0.0
     if lucro_real:
-        # PIS/COFINS recupera
-        creditos += (preco_unit * (pis/100)) + (preco_unit * (cofins/100))
-        # ICMS recupera
-        creditos += (preco_unit * (icms/100))
+        creditos = val_icms + val_pis + val_cofins
     
-    custo_final = custo_final - creditos
+    custo_final = custo_bruto - creditos
 
-    # 2. Lógica de Produto (Existente ou Novo)
+    # 2. Lógica de Produto
     produto_id = None
     
-    if novo_produto_nome:
-        # Cria produto novo básico
-        sql_new = "INSERT INTO produtos (nome, sku, fornecedor, quantidade, preco_final) VALUES (:nome, :sku, :forn, :qtd, :custo)"
-        # Gera um SKU temporário
-        sku_temp = f"NEW-{int(datetime.now().timestamp())}"
-        run_command(sql_new, {
-            'nome': novo_produto_nome, 'sku': sku_temp, 'forn': fornecedor, 
-            'qtd': 0, 'custo': 0.0
-        })
-        # Pega o ID criado
-        df_id = run_query("SELECT id FROM produtos WHERE sku = :sku", {'sku': sku_temp})
-        if not df_id.empty:
-            produto_id = int(df_id.iloc[0]['id'])
+    # Se checkbox marcado OU nome preenchido
+    if check_novo == 'on' or (nome_novo and nome_novo.strip() != ''):
+        if not nome_novo:
+            return jsonify({'success': False, 'message': 'Nome do produto obrigatório para novo cadastro.'})
+
+        if not sku_novo:
+            sku_novo = f"NEW-{int(datetime.now().timestamp())}"
+
+        sql_new = """
+            INSERT INTO produtos (nome, sku, fornecedor, quantidade, preco_final) 
+            VALUES (:nome, :sku, :forn, :qtd, :custo)
+        """
+        if run_command(sql_new, {'nome': nome_novo, 'sku': sku_novo, 'forn': fornecedor, 'qtd': 0, 'custo': 0.0}):
+            df_id = run_query("SELECT id FROM produtos WHERE sku = :sku", {'sku': sku_novo})
+            if not df_id.empty:
+                produto_id = int(df_id.iloc[0]['id'])
+        else:
+            return jsonify({'success': False, 'message': 'Erro ao criar novo produto.'})
+            
     else:
         try:
             produto_id = int(produto_id_raw)
         except:
-            flash('Erro: Produto inválido.', 'danger')
-            return redirect(url_for('compras.nova_entrada'))
+            return jsonify({'success': False, 'message': 'Selecione um produto válido.'})
 
-    # 3. Inserir no Histórico (AGORA COM TODOS OS CAMPOS NOVOS)
+    # 3. Inserir no Histórico
     sql_hist = """
         INSERT INTO historico_compras (
             produto_id, data_compra, nro_nf, fornecedor, quantidade,
@@ -109,16 +112,14 @@ def salvar_entrada():
     params_hist = {
         'pid': produto_id, 'data': data_hoje, 'nf': nro_nf, 'forn': fornecedor, 'qtd': qtd,
         'preco': preco_unit, 'frete': frete_unit, 'final': custo_final,
-        'icms': icms, 'ipi': ipi, 'pis': pis, 'cofins': cofins,
+        'icms': icms_rate, 'ipi': ipi_rate, 'pis': pis_rate, 'cofins': cofins_rate,
         'l_real': lucro_real, 'imp': importacao
     }
     
     if not run_command(sql_hist, params_hist):
-        flash('Erro ao salvar no histórico.', 'danger')
-        return redirect(url_for('compras.nova_entrada'))
+        return jsonify({'success': False, 'message': 'Erro ao salvar histórico.'})
 
-    # 4. Atualizar Estoque e Preço no Produto Principal
-    # (Poderíamos fazer média ponderada, mas aqui vamos atualizar para o custo atual)
+    # 4. Atualizar Produto Principal
     sql_update = """
         UPDATE produtos 
         SET quantidade = quantidade + :qtd,
@@ -130,5 +131,8 @@ def salvar_entrada():
         'qtd': qtd, 'novo_custo': custo_final, 'forn': fornecedor, 'id': produto_id
     })
 
-    flash(f'Entrada registrada com sucesso! Custo atualizado para R$ {custo_final:.2f}', 'success')
-    return redirect(url_for('produtos.index'))
+    # RETORNA JSON DE SUCESSO
+    return jsonify({
+        'success': True, 
+        'message': f'Entrada confirmada! Custo atualizado: R$ {custo_final:.2f}'
+    })

@@ -14,7 +14,7 @@ def index():
             COALESCE(
                 (SELECT quantidade FROM historico_compras 
                  WHERE produto_id = p.id ORDER BY id DESC LIMIT 1), 
-            0) as quantidade
+            p.quantidade) as quantidade
         FROM produtos p
     """
     
@@ -35,7 +35,7 @@ def index():
 def novo():
     return render_template('nova_entrada.html') 
 
-# --- 3. SALVAR NOVO (Redirect é ok aqui pois muda de página) ---
+# --- 3. SALVAR NOVO ---
 @produtos_bp.route('/produtos/salvar', methods=['POST'])
 def salvar():
     sku = request.form.get('sku')
@@ -86,7 +86,7 @@ def salvar():
         
     return redirect(url_for('produtos.index'))
 
-# --- 4. ATUALIZAR PRODUTO (JSONIFY para AJAX) ---
+# --- 4. ATUALIZAR PRODUTO ---
 @produtos_bp.route('/produtos/editar', methods=['POST'])
 def editar():
     id_prod = request.form.get('id')
@@ -131,14 +131,24 @@ def editar():
     """
 
     if run_command(sql, params):
-        # AQUI ESTÁ A CORREÇÃO: Retorna JSON, não redirect
         return jsonify({'success': True, 'message': 'Produto atualizado!'})
     else:
         return jsonify({'success': False, 'message': 'Erro no banco de dados.'}), 500
 
-# --- 5. API DETALHES ---
+# --- 5. EXCLUIR PRODUTO ---
+@produtos_bp.route('/produtos/excluir', methods=['POST'])
+def excluir():
+    id_prod = request.form.get('id')
+    sql = "DELETE FROM produtos WHERE id = :id"
+    if run_command(sql, {'id': id_prod}):
+        return jsonify({'success': True, 'message': 'Produto excluído com sucesso!'})
+    else:
+        return jsonify({'success': False, 'message': 'Erro ao excluir produto.'}), 500
+
+# --- 6. API DETALHES (CORRIGIDA) ---
 @produtos_bp.route('/api/produto/detalhes/<int:id>', methods=['GET'])
 def get_produto_detalhes(id):
+    # REMOVIDO: importacao_propria (não existe na tabela produtos)
     query = """
         SELECT 
             id, sku, nome, fornecedor, quantidade, preco_final, 
@@ -172,3 +182,47 @@ def get_produto_detalhes(id):
     p['comprimento_master'] = safe_float(p.get('comprimento_master'))
     
     return jsonify(p)
+
+# --- 7. API HISTÓRICO ---
+@produtos_bp.route('/api/historico/<int:prod_id>')
+def get_historico(prod_id):
+    sql = """
+        SELECT 
+            id,
+            data_compra, nro_nf, fornecedor, quantidade, 
+            preco_partida, frete, custo_final,
+            icms, ipi, pis, cofins,
+            lucro_real, importacao_propria
+        FROM historico_compras
+        WHERE produto_id = :id
+        ORDER BY data_compra DESC, id DESC
+    """
+    
+    df = run_query(sql, {'id': prod_id})
+    
+    if df.empty: return jsonify([])
+    
+    historico = df.to_dict('records')
+    
+    for item in historico:
+        try:
+            if item['data_compra']:
+                item['data_compra'] = str(item['data_compra'])
+                partes = item['data_compra'].split('-')
+                if len(partes) == 3:
+                    item['data_compra'] = f"{partes[2]}/{partes[1]}/{partes[0]}"
+        except: pass
+        item['lucro_real'] = bool(item['lucro_real'])
+        item['importacao_propria'] = bool(item['importacao_propria'])
+
+    return jsonify(historico)
+
+# --- 8. EXCLUIR ITEM HISTÓRICO ---
+@produtos_bp.route('/api/historico/excluir', methods=['POST'])
+def excluir_historico_item():
+    id_hist = request.form.get('id')
+    sql = "DELETE FROM historico_compras WHERE id = :id"
+    if run_command(sql, {'id': id_hist}):
+        return jsonify({'success': True, 'message': 'Registro excluído!'})
+    else:
+        return jsonify({'success': False, 'message': 'Erro ao excluir registro.'}), 500

@@ -50,7 +50,7 @@
             <th>Fornecedor</th>
             <th class="text-center">Estoque</th>
             <th class="text-end">Custo Atual</th>
-            <th class="text-center pe-4">Ações</th>
+            <th class="text-center pe-4" style="min-width: 120px">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -88,16 +88,26 @@
               R$ {{ "%.2f"|format(p.preco_final) }}
             </td>
             <td class="text-center pe-4" onclick="event.stopPropagation()">
-              <button
-                type="button"
-                class="btn btn-outline-secondary btn-sm"
-                onclick="abrirHistorico(this.dataset.id, this.dataset.nome)"
-                data-id="{{ p.id }}"
-                data-nome="{{ p.nome }}"
-                title="Ver Histórico Completo"
-              >
-                <i class="fa-solid fa-clock-rotate-left"></i>
-              </button>
+              <div class="btn-group">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  onclick="abrirHistorico(this.dataset.id, this.dataset.nome)"
+                  data-id="{{ p.id }}"
+                  data-nome="{{ p.nome }}"
+                  title="Ver Histórico"
+                >
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm"
+                  onclick="excluirProduto('{{ p.id }}', '{{ p.nome }}')"
+                  title="Excluir Produto"
+                >
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -156,7 +166,8 @@
                 <th class="text-end">Preço NF</th>
                 <th class="text-end">Frete</th>
                 <th>Impostos (%)</th>
-                <th class="text-end pe-4">Custo Final</th>
+                <th class="text-end">Custo Final</th>
+                <th class="text-center pe-4" style="width: 50px"></th>
               </tr>
             </thead>
             <tbody id="corpoTabelaHistorico"></tbody>
@@ -532,7 +543,7 @@
   >
     <div class="d-flex">
       <div class="toast-body fw-bold">
-        <i class="fa-solid fa-check-circle me-2"></i> Produto atualizado com
+        <i class="fa-solid fa-check-circle me-2"></i> Operação realizada com
         sucesso!
       </div>
       <button
@@ -549,7 +560,7 @@
 <script>
   let currentProduto = null;
 
-  // --- ABRIR DETALHES ---
+  // --- 1. ABRIR DETALHES ---
   window.abrirDetalhes = function (id) {
     var myModal = new bootstrap.Modal(document.getElementById("modalDetalhes"));
     document.getElementById("loadingDetalhes").style.display = "block";
@@ -596,7 +607,7 @@
       });
   };
 
-  // --- HABILITAR EDIÇÃO ---
+  // --- 2. HABILITAR EDIÇÃO ---
   window.habilitarEdicao = function () {
     if (!currentProduto) return;
 
@@ -628,7 +639,7 @@
       currentProduto.comprimento_master;
   };
 
-  // --- SALVAR (AJAX) ---
+  // --- 3. SALVAR EDIÇÃO (AJAX) ---
   document
     .getElementById("formEditarProduto")
     .addEventListener("submit", function (e) {
@@ -662,7 +673,6 @@
             const toast = new bootstrap.Toast(toastEl);
             toast.show();
 
-            // Atualiza a linha na tabela sem refresh
             const id = document.getElementById("edit-id").value;
             const novoNome = document.getElementById("edit-nome").value;
             const novoSku = document.getElementById("edit-sku").value;
@@ -684,7 +694,81 @@
         });
     });
 
-  // --- HISTÓRICO ---
+  // --- 4. EXCLUIR PRODUTO (NOVO) ---
+  window.excluirProduto = function (id, nome) {
+    if (
+      !confirm(
+        `ATENÇÃO!\n\nVocê tem certeza que deseja excluir o produto "${nome}"?\n\nIsso apagará permanentemente o produto e todo o seu histórico de compras.`
+      )
+    ) {
+      return;
+    }
+
+    let formData = new FormData();
+    formData.append("id", id);
+
+    fetch("{{ url_for('produtos.excluir') }}", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // Remove a linha da tabela sem recarregar
+          const row = document.getElementById(`row-${id}`);
+          if (row) row.remove();
+        } else {
+          alert("Erro ao excluir: " + data.message);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Erro de conexão ao excluir.");
+      });
+  };
+
+  // --- 5. EXCLUIR ITEM DO HISTÓRICO (NOVO) ---
+  window.excluirHistoricoItem = function (id) {
+    if (
+      !confirm(
+        "Deseja apagar este registro do histórico?\n\nObs: Isso não altera o estoque atual."
+      )
+    ) {
+      return;
+    }
+
+    let formData = new FormData();
+    formData.append("id", id);
+
+    fetch("/api/historico/excluir", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // Remove a linha da tabela do modal
+          const row = document.getElementById(`hist-row-${id}`);
+          if (row) row.remove();
+
+          // Se ficou vazio, mostra msg
+          if (
+            document.querySelectorAll("#corpoTabelaHistorico tr").length === 0
+          ) {
+            $("#tabelaHistorico").hide();
+            $("#vazioHistorico").show();
+          }
+        } else {
+          alert("Erro ao excluir: " + data.message);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Erro de conexão.");
+      });
+  };
+
+  // --- 6. HISTÓRICO (ATUALIZADO COM BOTÃO DE EXCLUIR) ---
   window.abrirHistorico = function (id, nomeProduto) {
     $("#modalTitulo").text(nomeProduto);
     $("#corpoTabelaHistorico").empty();
@@ -717,9 +801,9 @@
         data.forEach((item) => {
           let tags = "";
           if (item.lucro_real)
-            tags += `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1">Real</span>`;
+            tags += `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1" title="Lucro Real">Real</span>`;
           if (item.importacao_propria)
-            tags += `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Imp</span>`;
+            tags += `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" title="Importação Própria">Imp</span>`;
           if (!tags)
             tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary">Simples</span>`;
 
@@ -740,8 +824,9 @@
                         </div>
                     `;
 
+          // Linha com ID para poder remover depois
           let row = `
-                        <tr>
+                        <tr id="hist-row-${item.id}">
                             <td class="ps-4 fw-bold text-muted" style="white-space:nowrap;">${
                               item.data_compra
                             }</td>
@@ -766,9 +851,18 @@
                               item.frete
                             )}</td>
                             <td>${impostosHtml}</td>
-                            <td class="text-end pe-4 fw-bold text-success fs-6">${fmt.format(
+                            <td class="text-end fw-bold text-success fs-6">${fmt.format(
                               item.custo_final
                             )}</td>
+                            <td class="text-center pe-4">
+                                <button class="btn btn-sm btn-outline-danger border-0" 
+                                        onclick="excluirHistoricoItem(${
+                                          item.id
+                                        })" 
+                                        title="Apagar registro">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
                         </tr>
                     `;
           tbody.append(row);
