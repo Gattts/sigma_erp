@@ -1,878 +1,556 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block content %}
 <div class="container py-4">
-  <div class="row align-items-center mb-4 g-3">
-    <div class="col-md-6">
-      <h3 class="fw-bold m-0">Cadastro de Produtos</h3>
-      <p class="text-muted small m-0">
-        Gerencie seu estoque e visualize custos
-      </p>
-    </div>
 
-    <div class="col-md-6">
-      <div class="d-flex gap-2 justify-content-md-end">
-        <form
-          method="GET"
-          action="{{ url_for('produtos.index') }}"
-          class="d-flex flex-grow-1"
-          style="max-width: 300px"
-        >
-          <div class="input-group">
-            <input
-              type="text"
-              name="q"
-              class="form-control"
-              placeholder="Buscar nome ou SKU..."
-              value="{{ request.args.get('q', '') }}"
-            />
-            <button type="submit" class="btn btn-outline-secondary">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-          </div>
-        </form>
-
-        <a
-          href="{{ url_for('produtos.novo') }}"
-          class="btn btn-primary fw-bold px-4 d-flex align-items-center"
-        >
-          <i class="fa-solid fa-plus me-2"></i> Nova Entrada
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="st-card p-0 overflow-hidden">
-    {% if produtos %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th class="ps-4">Produto</th>
-            <th>Fornecedor</th>
-            <th class="text-center">Estoque</th>
-            <th class="text-end">Custo Atual</th>
-            <th class="text-center pe-4" style="min-width: 120px">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in produtos %}
-          <tr
-            style="cursor: pointer"
-            onclick="abrirDetalhes('{{ p.id }}')"
-            id="row-{{ p.id }}"
-          >
-            <td class="ps-4">
-              <div class="fw-bold text-body" id="row-name-{{ p.id }}">
-                {{ p.nome }}
-              </div>
-              <span
-                class="badge bg-light text-dark border mt-1"
-                id="row-sku-{{ p.id }}"
-                >{{ p.sku }}</span
-              >
-            </td>
-            <td class="text-muted small">{{ p.fornecedor or '---' }}</td>
-            <td class="text-center">
-              {% if p.quantidade > 0 %}
-              <span
-                class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3"
-                >{{ p.quantidade }} un</span
-              >
-              {% else %}
-              <span
-                class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3"
-                >Zerado</span
-              >
-              {% endif %}
-            </td>
-            <td class="text-end fw-bold text-success">
-              R$ {{ "%.2f"|format(p.preco_final) }}
-            </td>
-            <td class="text-center pe-4" onclick="event.stopPropagation()">
-              <div class="btn-group">
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  onclick="abrirHistorico(this.dataset.id, this.dataset.nome)"
-                  data-id="{{ p.id }}"
-                  data-nome="{{ p.nome }}"
-                  title="Ver Histórico"
-                >
-                  <i class="fa-solid fa-clock-rotate-left"></i>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-danger btn-sm"
-                  onclick="excluirProduto('{{ p.id }}', '{{ p.nome }}')"
-                  title="Excluir Produto"
-                >
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="text-center py-5">
-      <div class="mb-3">
-        <i class="fa-solid fa-box-open fs-1 text-muted opacity-25"></i>
-      </div>
-      <h6 class="text-muted">Nenhum produto encontrado.</h6>
-      {% if request.args.get('q') %}
-      <a
-        href="{{ url_for('produtos.index') }}"
-        class="btn btn-link text-decoration-none"
-        >Limpar busca</a
-      >
-      {% endif %}
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-<div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
-  <div
-    class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
-  >
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-panel border-bottom">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h5 class="modal-title fw-bold" id="modalTitulo">Histórico</h5>
-          <p class="text-muted small m-0 mb-1">
-            Detalhamento completo de custos e impostos por entrada
-          </p>
+            <h3 class="fw-bold m-0">Cadastro de Produtos</h3>
+            <p class="text-muted small m-0">Gerencie estoque, origens e custos</p>
         </div>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
-      </div>
-      <div class="modal-body p-0">
-        <div class="table-responsive">
-          <table
-            class="table table-hover align-middle mb-0"
-            id="tabelaHistorico"
-            style="font-size: 0.9rem"
-          >
-            <thead class="bg-light">
-              <tr>
-                <th class="ps-4">Data</th>
-                <th>Origem</th>
-                <th class="text-center">Qtd</th>
-                <th class="text-end">Preço NF</th>
-                <th class="text-end">Frete</th>
-                <th>Impostos (%)</th>
-                <th class="text-end">Custo Final</th>
-                <th class="text-center pe-4" style="width: 50px"></th>
-              </tr>
-            </thead>
-            <tbody id="corpoTabelaHistorico"></tbody>
-          </table>
-        </div>
-        <div id="loadingHistorico" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="text-muted small mt-2">Carregando dados...</p>
-        </div>
-        <div id="vazioHistorico" class="text-center py-5" style="display: none">
-          <i class="fa-solid fa-ghost fs-1 text-muted opacity-25 mb-2"></i>
-          <p class="text-muted">Nenhum registro encontrado.</p>
-        </div>
-      </div>
-      <div class="modal-footer border-top bg-panel">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Fechar
-        </button>
-      </div>
+        <a href="{{ url_for('produtos.novo') }}" class="btn btn-primary fw-bold px-4 shadow-sm">
+            <i class="fa-solid fa-plus me-2"></i> Nova Entrada
+        </a>
     </div>
-  </div>
+
+    <div class="st-card p-3 mb-4 bg-white">
+        <form method="GET" action="{{ url_for('produtos.index') }}">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="small text-muted fw-bold mb-1">Buscar (Nome/SKU)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                        <input type="text" name="q" class="form-control border-start-0" placeholder="Digite..." value="{{ request.args.get('q', '') }}">
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="small text-muted fw-bold mb-1">Fornecedor</label>
+                    <select class="form-select select2-filter" name="filtro_fornecedor">
+                        <option value="">Todos</option>
+                        {% for f in fornecedores %}
+                        <option value="{{ f }}" {{ 'selected' if request.args.get('filtro_fornecedor') == f else '' }}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="small text-muted fw-bold mb-1">Nº Nota Fiscal</label>
+                    <input type="text" name="filtro_nf" class="form-control" placeholder="Ex: 12345" value="{{ request.args.get('filtro_nf', '') }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="small text-muted fw-bold mb-1">Origem</label>
+                    <select class="form-select" name="filtro_origem" style="font-size: 0.9rem;">
+                        <option value="">Todas</option>
+                        <option value="0" {{ 'selected' if request.args.get('filtro_origem') == '0' else '' }}>0 - Nacional</option>
+                        <option value="1" {{ 'selected' if request.args.get('filtro_origem') == '1' else '' }}>1 - Estrangeira (Imp. Direta)</option>
+                        <option value="2" {{ 'selected' if request.args.get('filtro_origem') == '2' else '' }}>2 - Estrangeira (Adq. Interna)</option>
+                        <option value="3" {{ 'selected' if request.args.get('filtro_origem') == '3' else '' }}>3 - Nacional (Imp. > 40%)</option>
+                        <option value="4" {{ 'selected' if request.args.get('filtro_origem') == '4' else '' }}>4 - Nacional (Básico)</option>
+                        <option value="5" {{ 'selected' if request.args.get('filtro_origem') == '5' else '' }}>5 - Nacional (Imp. < 40%)</option>
+                        <option value="6" {{ 'selected' if request.args.get('filtro_origem') == '6' else '' }}>6 - Estrangeira (s/ similar)</option>
+                        <option value="7" {{ 'selected' if request.args.get('filtro_origem') == '7' else '' }}>7 - Estrangeira (Adq. Int s/ sim.)</option>
+                        <option value="8" {{ 'selected' if request.args.get('filtro_origem') == '8' else '' }}>8 - Nacional (Imp. > 70%)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-outline-primary w-100" title="Aplicar Filtros">
+                        <i class="fa-solid fa-filter"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="st-card p-0 overflow-hidden shadow-sm">
+        {% if produtos %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 py-3">Produto</th>
+                        <th>Fornecedor</th>
+                        <th class="text-center">Origem</th>
+                        <th class="text-center">Estoque</th>
+                        <th class="text-end">Custo Atual</th>
+                        <th class="text-center pe-4" style="min-width: 120px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in produtos %}
+                    <tr style="cursor: pointer;" onclick="abrirDetalhes('{{ p.id }}')" id="row-{{ p.id }}">
+                        <td class="ps-4">
+                            <div class="fw-bold text-body" id="row-name-{{ p.id }}">{{ p.nome }}</div>
+                            <span class="badge bg-light text-dark border mt-1" id="row-sku-{{ p.id }}">{{ p.sku }}</span>
+                        </td>
+                        <td class="text-muted small">{{ p.fornecedor or '---' }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" title="Código Origem">
+                                {{ p.origem }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if p.quantidade > 0 %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">{{ p.quantidade }} un</span>
+                            {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3">Zerado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold text-success">
+                            R$ {{ "%.2f"|format(p.preco_final) }}
+                        </td>
+                        <td class="text-center pe-4" onclick="event.stopPropagation()">
+                            <div class="btn-group shadow-sm" role="group">
+                                <button type="button" 
+                                        class="btn btn-light btn-sm border" 
+                                        onclick="abrirHistorico(this.dataset.id, this.dataset.nome)"
+                                        data-id="{{ p.id }}"
+                                        data-nome="{{ p.nome }}"
+                                        title="Histórico">
+                                    <i class="fa-solid fa-clock-rotate-left text-muted"></i>
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-light btn-sm border text-danger" 
+                                        onclick="excluirProduto('{{ p.id }}', '{{ p.nome }}')"
+                                        title="Excluir">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fa-solid fa-box-open fs-1 text-muted opacity-25 mb-3"></i>
+                <h6 class="text-muted">Nenhum produto encontrado com estes filtros.</h6>
+                <a href="{{ url_for('produtos.index') }}" class="btn btn-link text-decoration-none fw-bold">Limpar Filtros</a>
+            </div>
+        {% endif %}
+    </div>
+
 </div>
 
 <div class="modal fade" id="modalDetalhes" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-panel border-bottom">
-        <h5 class="modal-title fw-bold text-primary">
-          <i class="fa-solid fa-cube me-2"></i> Ficha Técnica
-        </h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
-      </div>
-      <div class="modal-body p-4">
-        <div id="loadingDetalhes" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-panel border-bottom">
+                <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-cube me-2"></i> Ficha Técnica</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="loadingDetalhes" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                
+                <div id="conteudoDetalhes" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+                        <div>
+                            <span id="det-sku" class="badge bg-secondary mb-2">SKU</span>
+                            <h4 id="det-nome" class="fw-bold lh-sm mb-1">Nome do Produto</h4>
+                            <span id="det-fornecedor" class="text-muted small">Fornecedor</span>
+                            <span class="mx-2 text-muted">|</span>
+                            <span class="text-muted small">Origem: <strong id="det-origem-text" class="text-dark"></strong></span>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Custo Unitário</small>
+                            <span id="det-preco" class="fs-3 fw-bold text-success">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end">
+                            <h6 class="text-primary fw-bold text-uppercase mb-3 small"><i class="fa-solid fa-box me-2"></i> Unitário</h6>
+                            <div class="row g-2 text-center mb-3">
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">ALTURA</small><strong class="text-body"><span id="det-altura">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">LARGURA</small><strong class="text-body"><span id="det-largura">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">COMPR.</small><strong class="text-body"><span id="det-comprimento">0</span> cm</strong></div></div>
+                            </div>
+                            <div class="p-2 bg-light rounded border d-flex justify-content-between align-items-center">
+                                <small class="text-muted fw-bold ps-2">PESO</small>
+                                <span class="fw-bold text-body pe-2"><span id="det-peso">0</span> kg</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-warning fw-bold text-uppercase mb-3 small"><i class="fa-solid fa-boxes-stacked me-2"></i> Caixa Master</h6>
+                            <div class="p-2 mb-3 bg-warning bg-opacity-10 rounded border border-warning border-opacity-25 d-flex justify-content-between align-items-center">
+                                <small class="text-body fw-bold ps-2">QTD NA CAIXA</small>
+                                <span class="fw-bold text-body pe-2"><span id="det-qtd-master">0</span> un</span>
+                            </div>
+                            <div class="row g-2 text-center">
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">ALTURA</small><strong class="text-body"><span id="det-altura-master">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">LARGURA</small><strong class="text-body"><span id="det-largura-master">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">COMPR.</small><strong class="text-body"><span id="det-comprimento-master">0</span> cm</strong></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-panel border-top d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary fw-bold" onclick="habilitarEdicao()">
+                    <i class="fa-solid fa-pen-to-square me-2"></i> Editar Dados
+                </button>
+            </div>
         </div>
-
-        <div id="conteudoDetalhes" style="display: none">
-          <div
-            class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom"
-          >
-            <div>
-              <span id="det-sku" class="badge bg-secondary mb-2">SKU</span>
-              <h4 id="det-nome" class="fw-bold lh-sm mb-1">Nome do Produto</h4>
-              <span id="det-fornecedor" class="text-muted small"
-                >Fornecedor</span
-              >
-            </div>
-            <div class="text-end">
-              <small
-                class="text-muted d-block text-uppercase"
-                style="font-size: 0.7rem"
-                >Custo Unitário</small
-              >
-              <span id="det-preco" class="fs-3 fw-bold text-success"
-                >R$ 0,00</span
-              >
-            </div>
-          </div>
-
-          <div class="row g-4">
-            <div class="col-md-6 border-end">
-              <h6 class="text-primary fw-bold text-uppercase mb-3 small">
-                <i class="fa-solid fa-box me-2"></i> Unitário
-              </h6>
-              <div class="row g-2 text-center mb-3">
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded border">
-                    <small class="d-block text-muted" style="font-size: 0.65rem"
-                      >ALTURA</small
-                    ><strong class="text-body"
-                      ><span id="det-altura">0</span> cm</strong
-                    >
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded border">
-                    <small class="d-block text-muted" style="font-size: 0.65rem"
-                      >LARGURA</small
-                    ><strong class="text-body"
-                      ><span id="det-largura">0</span> cm</strong
-                    >
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded border">
-                    <small class="d-block text-muted" style="font-size: 0.65rem"
-                      >COMPR.</small
-                    ><strong class="text-body"
-                      ><span id="det-comprimento">0</span> cm</strong
-                    >
-                  </div>
-                </div>
-              </div>
-              <div
-                class="p-2 bg-light rounded border d-flex justify-content-between align-items-center"
-              >
-                <small class="text-muted fw-bold ps-2">PESO</small>
-                <span class="fw-bold text-body pe-2"
-                  ><span id="det-peso">0</span> kg</span
-                >
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <h6 class="text-warning fw-bold text-uppercase mb-3 small">
-                <i class="fa-solid fa-boxes-stacked me-2"></i> Caixa Master
-              </h6>
-              <div
-                class="p-2 mb-3 bg-warning bg-opacity-10 rounded border border-warning border-opacity-25 d-flex justify-content-between align-items-center"
-              >
-                <small class="text-body fw-bold ps-2">QTD NA CAIXA</small>
-                <span class="fw-bold text-body pe-2"
-                  ><span id="det-qtd-master">0</span> un</span
-                >
-              </div>
-              <div class="row g-2 text-center">
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded border">
-                    <small class="d-block text-muted" style="font-size: 0.65rem"
-                      >ALTURA</small
-                    ><strong class="text-body"
-                      ><span id="det-altura-master">0</span> cm</strong
-                    >
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded border">
-                    <small class="d-block text-muted" style="font-size: 0.65rem"
-                      >LARGURA</small
-                    ><strong class="text-body"
-                      ><span id="det-largura-master">0</span> cm</strong
-                    >
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="p-2 bg-light rounded border">
-                    <small class="d-block text-muted" style="font-size: 0.65rem"
-                      >COMPR.</small
-                    ><strong class="text-body"
-                      ><span id="det-comprimento-master">0</span> cm</strong
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div
-        class="modal-footer bg-panel border-top d-flex justify-content-between"
-      >
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Fechar
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary fw-bold"
-          onclick="habilitarEdicao()"
-        >
-          <i class="fa-solid fa-pen-to-square me-2"></i> Editar Dados
-        </button>
-      </div>
     </div>
-  </div>
 </div>
 
-<div
-  class="modal fade"
-  id="modalEditar"
-  tabindex="-1"
-  aria-hidden="true"
-  data-bs-backdrop="static"
->
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow-lg">
-      <form id="formEditarProduto">
-        <input type="hidden" name="id" id="edit-id" />
+<div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <form id="formEditarProduto">
+                <input type="hidden" name="id" id="edit-id">
+                
+                <div class="modal-header bg-primary text-white border-bottom-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-pen-to-square me-2"></i> Editar Produto
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-muted">SKU</label>
+                            <input type="text" name="sku" id="edit-sku" class="form-control fw-bold">
+                        </div>
+                        <div class="col-md-9">
+                            <label class="small fw-bold text-muted">Nome do Produto</label>
+                            <input type="text" name="nome" id="edit-nome" class="form-control">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-muted">Fornecedor</label>
+                            <select class="form-select" name="fornecedor" id="edit-fornecedor" style="width: 100%;">
+                                {% for f in fornecedores %}
+                                    <option value="{{ f }}">{{ f }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-        <div class="modal-header bg-primary text-white border-bottom-0">
-          <h5 class="modal-title fw-bold">
-            <i class="fa-solid fa-pen-to-square me-2"></i> Editar Produto
-          </h5>
-          <button
-            type="button"
-            class="btn-close btn-close-white"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-muted">Origem</label>
+                            <select class="form-select" name="origem" id="edit-origem">
+                                <option value="0">0 - Nacional</option>
+                                <option value="1">1 - Estrangeira (Imp. Direta)</option>
+                                <option value="2">2 - Estrangeira (Adq. Interna)</option>
+                                <option value="3">3 - Nacional (Conteúdo > 40%)</option>
+                                <option value="4">4 - Nacional (Prod. Básico)</option>
+                                <option value="5">5 - Nacional (Conteúdo < 40%)</option>
+                                <option value="6">6 - Estrangeira (Sem similar)</option>
+                                <option value="7">7 - Estrangeira (Adq. Int. s/ similar)</option>
+                                <option value="8">8 - Nacional (Conteúdo > 70%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border h-100">
+                                <div class="card-header bg-light fw-bold text-primary small text-uppercase">Medidas Unitárias</div>
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-6 mb-2">
+                                            <label class="small text-muted">Peso (Kg)</label>
+                                            <input type="number" step="0.001" name="peso" id="edit-peso" class="form-control">
+                                        </div>
+                                        <div class="col-6 mb-2"></div>
+                                        <div class="col-4"><label class="small text-muted">Alt</label><input type="number" step="0.01" name="altura" id="edit-altura" class="form-control"></div>
+                                        <div class="col-4"><label class="small text-muted">Larg</label><input type="number" step="0.01" name="largura" id="edit-largura" class="form-control"></div>
+                                        <div class="col-4"><label class="small text-muted">Comp</label><input type="number" step="0.01" name="comprimento" id="edit-comprimento" class="form-control"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border h-100">
+                                <div class="card-header bg-light fw-bold text-warning small text-uppercase">Caixa Master</div>
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-6 mb-2">
+                                            <label class="small text-muted fw-bold">Qtd Master</label>
+                                            <input type="number" name="qtd_cx_master" id="edit-qtd-master" class="form-control border-warning">
+                                        </div>
+                                        <div class="col-6 mb-2"></div>
+                                        <div class="col-4"><label class="small text-muted">Alt</label><input type="number" step="0.01" name="altura_master" id="edit-altura-master" class="form-control"></div>
+                                        <div class="col-4"><label class="small text-muted">Larg</label><input type="number" step="0.01" name="largura_master" id="edit-largura-master" class="form-control"></div>
+                                        <div class="col-4"><label class="small text-muted">Comp</label><input type="number" step="0.01" name="comprimento_master" id="edit-comprimento-master" class="form-control"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-panel border-top">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4" id="btnSalvarEdicao">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div class="modal-body p-4">
-          <div class="row g-3 mb-4">
-            <div class="col-md-3">
-              <label class="small fw-bold text-muted">SKU</label>
-              <input
-                type="text"
-                name="sku"
-                id="edit-sku"
-                class="form-control fw-bold"
-              />
-            </div>
-            <div class="col-md-9">
-              <label class="small fw-bold text-muted">Nome do Produto</label>
-              <input
-                type="text"
-                name="nome"
-                id="edit-nome"
-                class="form-control"
-              />
-            </div>
-            <div class="col-md-12">
-              <label class="small fw-bold text-muted">Fornecedor</label>
-              <input
-                type="text"
-                name="fornecedor"
-                id="edit-fornecedor"
-                class="form-control"
-              />
-            </div>
-          </div>
-
-          <div class="row g-4">
-            <div class="col-md-6">
-              <div class="card border h-100">
-                <div
-                  class="card-header bg-light fw-bold text-primary small text-uppercase"
-                >
-                  Medidas Unitárias
-                </div>
-                <div class="card-body p-3">
-                  <div class="row g-2">
-                    <div class="col-6 mb-2">
-                      <label class="small text-muted">Peso (Kg)</label>
-                      <input
-                        type="number"
-                        step="0.001"
-                        name="peso"
-                        id="edit-peso"
-                        class="form-control"
-                      />
-                    </div>
-                    <div class="col-6 mb-2"></div>
-                    <div class="col-4">
-                      <label class="small text-muted">Alt (cm)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="altura"
-                        id="edit-altura"
-                        class="form-control"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <label class="small text-muted">Larg (cm)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="largura"
-                        id="edit-largura"
-                        class="form-control"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <label class="small text-muted">Comp (cm)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="comprimento"
-                        id="edit-comprimento"
-                        class="form-control"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="card border h-100">
-                <div
-                  class="card-header bg-light fw-bold text-warning small text-uppercase"
-                >
-                  Caixa Master
-                </div>
-                <div class="card-body p-3">
-                  <div class="row g-2">
-                    <div class="col-6 mb-2">
-                      <label class="small text-muted fw-bold">Qtd Master</label>
-                      <input
-                        type="number"
-                        name="qtd_cx_master"
-                        id="edit-qtd-master"
-                        class="form-control border-warning"
-                      />
-                    </div>
-                    <div class="col-6 mb-2"></div>
-                    <div class="col-4">
-                      <label class="small text-muted">Alt (cm)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="altura_master"
-                        id="edit-altura-master"
-                        class="form-control"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <label class="small text-muted">Larg (cm)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="largura_master"
-                        id="edit-largura-master"
-                        class="form-control"
-                      />
-                    </div>
-                    <div class="col-4">
-                      <label class="small text-muted">Comp (cm)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="comprimento_master"
-                        id="edit-comprimento-master"
-                        class="form-control"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer bg-panel border-top">
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            data-bs-dismiss="modal"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-success fw-bold px-4"
-            id="btnSalvarEdicao"
-          >
-            <span
-              class="spinner-border spinner-border-sm d-none"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            Salvar Alterações
-          </button>
-        </div>
-      </form>
     </div>
-  </div>
+</div>
+
+<div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-panel border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold" id="modalTitulo">Histórico</h5>
+                    <p class="text-muted small m-0 mb-1">Detalhamento completo de custos e impostos</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabelaHistorico" style="font-size: 0.9rem;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Data</th>
+                                <th>Origem</th> <th class="text-center">Qtd</th>
+                                <th class="text-end">Preço NF</th>
+                                <th class="text-end">Frete</th>
+                                <th>Impostos (%)</th> <th class="text-end">Custo Final</th>
+                                <th class="text-center pe-4" style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabelaHistorico"></tbody>
+                    </table>
+                </div>
+                <div id="loadingHistorico" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted small mt-2">Carregando dados...</p>
+                </div>
+                <div id="vazioHistorico" class="text-center py-5" style="display:none;">
+                    <i class="fa-solid fa-ghost fs-1 text-muted opacity-25 mb-2"></i>
+                    <p class="text-muted">Nenhum registro encontrado.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-top bg-panel">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
-  <div
-    id="liveToast"
-    class="toast align-items-center text-white bg-success border-0"
-    role="alert"
-    aria-live="assertive"
-    aria-atomic="true"
-  >
-    <div class="d-flex">
-      <div class="toast-body fw-bold">
-        <i class="fa-solid fa-check-circle me-2"></i> Operação realizada com
-        sucesso!
-      </div>
-      <button
-        type="button"
-        class="btn-close btn-close-white me-2 m-auto"
-        data-bs-dismiss="toast"
-        aria-label="Close"
-      ></button>
+    <div id="liveToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
     </div>
-  </div>
 </div>
 
-{% endblock %} {% block scripts %}
+{% endblock %}
+
+{% block scripts %}
 <script>
-  let currentProduto = null;
+    // Inicializa Filtros
+    $('.select2-filter').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Selecione...' });
 
-  // --- 1. ABRIR DETALHES ---
-  window.abrirDetalhes = function (id) {
-    var myModal = new bootstrap.Modal(document.getElementById("modalDetalhes"));
-    document.getElementById("loadingDetalhes").style.display = "block";
-    document.getElementById("conteudoDetalhes").style.display = "none";
-    myModal.show();
+    // Inicializa Select2 do Modal de Edição (IMPORTANTE: dropdownParent)
+    $('#edit-fornecedor').select2({
+        theme: 'bootstrap-5',
+        dropdownParent: $('#modalEditar'),
+        tags: true, // Permite criar novo
+        placeholder: 'Selecione ou crie...',
+        width: '100%',
+        createTag: function (params) {
+            var term = $.trim(params.term);
+            if (term === '') { return null; }
+            return { id: term, text: term, newTag: true };
+        }
+    });
 
-    fetch("/api/produto/detalhes/" + id)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) return;
-        currentProduto = data;
+    let currentProduto = null;
 
-        document.getElementById("det-nome").innerText = data.nome;
-        document.getElementById("det-sku").innerText = data.sku;
-        document.getElementById("det-fornecedor").innerText = data.fornecedor;
+    // --- ABRIR DETALHES ---
+    window.abrirDetalhes = function(id) {
+        var myModal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
+        document.getElementById('loadingDetalhes').style.display = 'block';
+        document.getElementById('conteudoDetalhes').style.display = 'none';
+        myModal.show();
 
-        const fmt = new Intl.NumberFormat("pt-BR", {
-          style: "currency",
-          currency: "BRL",
+        fetch('/api/produto/detalhes/' + id).then(res => res.json()).then(data => {
+            if(data.error) return;
+            currentProduto = data;
+            
+            document.getElementById('det-nome').innerText = data.nome;
+            document.getElementById('det-sku').innerText = data.sku;
+            document.getElementById('det-fornecedor').innerText = data.fornecedor;
+            document.getElementById('det-origem-text').innerText = data.origem; 
+            
+            const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('det-preco').innerText = fmt.format(data.preco_final);
+
+            document.getElementById('det-peso').innerText = data.peso.toFixed(3);
+            document.getElementById('det-altura').innerText = data.altura.toFixed(1);
+            document.getElementById('det-largura').innerText = data.largura.toFixed(1);
+            document.getElementById('det-comprimento').innerText = data.comprimento.toFixed(1);
+            document.getElementById('det-qtd-master').innerText = data.qtd_cx_master;
+            document.getElementById('det-altura-master').innerText = data.altura_master.toFixed(1);
+            document.getElementById('det-largura-master').innerText = data.largura_master.toFixed(1);
+            document.getElementById('det-comprimento-master').innerText = data.comprimento_master.toFixed(1);
+
+            document.getElementById('loadingDetalhes').style.display = 'none';
+            document.getElementById('conteudoDetalhes').style.display = 'block';
         });
-        document.getElementById("det-preco").innerText = fmt.format(
-          data.preco_final
-        );
+    }
 
-        document.getElementById("det-peso").innerText = data.peso.toFixed(3);
-        document.getElementById("det-altura").innerText =
-          data.altura.toFixed(1);
-        document.getElementById("det-largura").innerText =
-          data.largura.toFixed(1);
-        document.getElementById("det-comprimento").innerText =
-          data.comprimento.toFixed(1);
+    // --- HABILITAR EDIÇÃO ---
+    window.habilitarEdicao = function() {
+        if(!currentProduto) return;
+        
+        bootstrap.Modal.getInstance(document.getElementById('modalDetalhes')).hide();
+        var editModal = new bootstrap.Modal(document.getElementById('modalEditar'));
+        editModal.show();
 
-        document.getElementById("det-qtd-master").innerText =
-          data.qtd_cx_master;
-        document.getElementById("det-altura-master").innerText =
-          data.altura_master.toFixed(1);
-        document.getElementById("det-largura-master").innerText =
-          data.largura_master.toFixed(1);
-        document.getElementById("det-comprimento-master").innerText =
-          data.comprimento_master.toFixed(1);
+        document.getElementById('edit-id').value = currentProduto.id;
+        document.getElementById('edit-sku').value = currentProduto.sku;
+        document.getElementById('edit-nome').value = currentProduto.nome;
+        document.getElementById('edit-origem').value = currentProduto.origem;
 
-        document.getElementById("loadingDetalhes").style.display = "none";
-        document.getElementById("conteudoDetalhes").style.display = "block";
-      });
-  };
+        // Lógica do Select2 de Fornecedor
+        var fornAtual = currentProduto.fornecedor;
+        if ($('#edit-fornecedor').find("option[value='" + fornAtual + "']").length) {
+            $('#edit-fornecedor').val(fornAtual).trigger('change');
+        } else {
+            // Cria opção nova se não existir na lista
+            var newOption = new Option(fornAtual, fornAtual, true, true);
+            $('#edit-fornecedor').append(newOption).trigger('change');
+        }
 
-  // --- 2. HABILITAR EDIÇÃO ---
-  window.habilitarEdicao = function () {
-    if (!currentProduto) return;
+        // Medidas
+        document.getElementById('edit-peso').value = currentProduto.peso;
+        document.getElementById('edit-altura').value = currentProduto.altura;
+        document.getElementById('edit-largura').value = currentProduto.largura;
+        document.getElementById('edit-comprimento').value = currentProduto.comprimento;
+        document.getElementById('edit-qtd-master').value = currentProduto.qtd_cx_master;
+        document.getElementById('edit-altura-master').value = currentProduto.altura_master;
+        document.getElementById('edit-largura-master').value = currentProduto.largura_master;
+        document.getElementById('edit-comprimento-master').value = currentProduto.comprimento_master;
+    }
 
-    bootstrap.Modal.getInstance(
-      document.getElementById("modalDetalhes")
-    ).hide();
-    var editModal = new bootstrap.Modal(document.getElementById("modalEditar"));
-    editModal.show();
+    // --- SALVAR EDIÇÃO ---
+    document.getElementById('formEditarProduto').addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        const btn = document.getElementById('btnSalvarEdicao');
+        const spinner = btn.querySelector('.spinner-border');
+        const formData = new FormData(this);
 
-    document.getElementById("edit-id").value = currentProduto.id;
-    document.getElementById("edit-sku").value = currentProduto.sku;
-    document.getElementById("edit-nome").value = currentProduto.nome;
-    document.getElementById("edit-fornecedor").value =
-      currentProduto.fornecedor;
+        btn.disabled = true; spinner.classList.remove('d-none');
 
-    document.getElementById("edit-peso").value = currentProduto.peso;
-    document.getElementById("edit-altura").value = currentProduto.altura;
-    document.getElementById("edit-largura").value = currentProduto.largura;
-    document.getElementById("edit-comprimento").value =
-      currentProduto.comprimento;
-
-    document.getElementById("edit-qtd-master").value =
-      currentProduto.qtd_cx_master;
-    document.getElementById("edit-altura-master").value =
-      currentProduto.altura_master;
-    document.getElementById("edit-largura-master").value =
-      currentProduto.largura_master;
-    document.getElementById("edit-comprimento-master").value =
-      currentProduto.comprimento_master;
-  };
-
-  // --- 3. SALVAR EDIÇÃO (AJAX) ---
-  document
-    .getElementById("formEditarProduto")
-    .addEventListener("submit", function (e) {
-      e.preventDefault();
-
-      const btn = document.getElementById("btnSalvarEdicao");
-      const spinner = btn.querySelector(".spinner-border");
-      const formData = new FormData(this);
-
-      btn.disabled = true;
-      spinner.classList.remove("d-none");
-
-      fetch("{{ url_for('produtos.editar') }}", {
-        method: "POST",
-        body: formData,
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error("Erro na rede ou servidor");
-          return response.json();
-        })
-        .then((data) => {
-          btn.disabled = false;
-          spinner.classList.add("d-none");
-
-          if (data.success) {
-            const modalEl = document.getElementById("modalEditar");
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
-
-            const toastEl = document.getElementById("liveToast");
-            const toast = new bootstrap.Toast(toastEl);
-            toast.show();
-
-            const id = document.getElementById("edit-id").value;
-            const novoNome = document.getElementById("edit-nome").value;
-            const novoSku = document.getElementById("edit-sku").value;
-
-            const nameEl = document.getElementById(`row-name-${id}`);
-            const skuEl = document.getElementById(`row-sku-${id}`);
-
-            if (nameEl) nameEl.innerText = novoNome;
-            if (skuEl) skuEl.innerText = novoSku;
-          } else {
-            alert("Erro: " + data.message);
-          }
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          btn.disabled = false;
-          spinner.classList.add("d-none");
-          alert("Erro de conexão ao salvar.");
+        fetch("{{ url_for('produtos.editar') }}", { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false; spinner.classList.add('d-none');
+            if(data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
+                showToast(data.message, 'success');
+                const id = document.getElementById('edit-id').value;
+                document.getElementById(`row-name-${id}`).innerText = document.getElementById('edit-nome').value;
+                document.getElementById(`row-sku-${id}`).innerText = document.getElementById('edit-sku').value;
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        }).catch(() => {
+            btn.disabled = false; spinner.classList.add('d-none');
+            alert('Erro de conexão.');
         });
     });
 
-  // --- 4. EXCLUIR PRODUTO (NOVO) ---
-  window.excluirProduto = function (id, nome) {
-    if (
-      !confirm(
-        `ATENÇÃO!\n\nVocê tem certeza que deseja excluir o produto "${nome}"?\n\nIsso apagará permanentemente o produto e todo o seu histórico de compras.`
-      )
-    ) {
-      return;
+    // --- EXCLUIR PRODUTO ---
+    window.excluirProduto = function(id, nome) {
+        if(!confirm(`Excluir "${nome}"?\nIsso apagará o produto e todo o histórico.`)) return;
+        
+        let formData = new FormData(); formData.append('id', id);
+        
+        fetch("{{ url_for('produtos.excluir') }}", { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById(`row-${id}`).remove();
+                showToast(data.message, 'success');
+            } else {
+                alert(data.message);
+            }
+        });
     }
 
-    let formData = new FormData();
-    formData.append("id", id);
+    // --- HISTÓRICO ---
+    window.abrirHistorico = function(id, nomeProduto) {
+        $('#modalTitulo').text(nomeProduto); 
+        $('#corpoTabelaHistorico').empty(); 
+        $('#tabelaHistorico').hide(); $('#vazioHistorico').hide(); $('#loadingHistorico').show();
+        new bootstrap.Modal(document.getElementById('modalHistorico')).show();
 
-    fetch("{{ url_for('produtos.excluir') }}", {
-      method: "POST",
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          // Remove a linha da tabela sem recarregar
-          const row = document.getElementById(`row-${id}`);
-          if (row) row.remove();
-        } else {
-          alert("Erro ao excluir: " + data.message);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Erro de conexão ao excluir.");
-      });
-  };
+        fetch(`/api/historico/${id}`).then(r => r.json()).then(data => {
+            $('#loadingHistorico').hide();
+            if (data.length === 0) { $('#vazioHistorico').show(); return; }
 
-  // --- 5. EXCLUIR ITEM DO HISTÓRICO (NOVO) ---
-  window.excluirHistoricoItem = function (id) {
-    if (
-      !confirm(
-        "Deseja apagar este registro do histórico?\n\nObs: Isso não altera o estoque atual."
-      )
-    ) {
-      return;
+            $('#tabelaHistorico').show();
+            const tbody = $('#corpoTabelaHistorico');
+            const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            data.forEach(item => {
+                let tags = '';
+                if(item.lucro_real) tags += `<span class="badge bg-success bg-opacity-10 text-success me-1">Real</span>`;
+                if(item.importacao_propria) tags += `<span class="badge bg-info bg-opacity-10 text-info">Imp</span>`;
+                if(!tags) tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary">Simples</span>`;
+
+                let row = `
+                    <tr id="hist-row-${item.id}">
+                        <td class="ps-4 fw-bold text-muted" style="white-space:nowrap;">${item.data_compra}</td>
+                        <td>
+                            <div class="fw-bold text-body text-truncate" style="max-width: 150px;">${item.fornecedor || '---'}</div>
+                            <div class="small text-muted mt-1"><i class="fa-solid fa-file-invoice me-1"></i> ${item.nro_nf} ${tags}</div>
+                        </td>
+                        <td class="text-center fw-bold text-primary">+${item.quantidade}</td>
+                        <td class="text-end text-muted">${fmt.format(item.preco_partida)}</td>
+                        <td class="text-end text-muted">${fmt.format(item.frete)}</td>
+                        <td class="small text-muted">
+                            ICMS: ${item.icms}% <br> PIS/COFINS: ${item.pis}%/${item.cofins}%
+                        </td>
+                        <td class="text-end fw-bold text-success">${fmt.format(item.custo_final)}</td>
+                        <td class="text-center pe-4">
+                            <button class="btn btn-sm btn-outline-danger border-0" onclick="excluirHistoricoItem(${item.id})"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                tbody.append(row);
+            });
+        });
     }
 
-    let formData = new FormData();
-    formData.append("id", id);
-
-    fetch("/api/historico/excluir", {
-      method: "POST",
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          // Remove a linha da tabela do modal
-          const row = document.getElementById(`hist-row-${id}`);
-          if (row) row.remove();
-
-          // Se ficou vazio, mostra msg
-          if (
-            document.querySelectorAll("#corpoTabelaHistorico tr").length === 0
-          ) {
-            $("#tabelaHistorico").hide();
-            $("#vazioHistorico").show();
-          }
-        } else {
-          alert("Erro ao excluir: " + data.message);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Erro de conexão.");
-      });
-  };
-
-  // --- 6. HISTÓRICO (ATUALIZADO COM BOTÃO DE EXCLUIR) ---
-  window.abrirHistorico = function (id, nomeProduto) {
-    $("#modalTitulo").text(nomeProduto);
-    $("#corpoTabelaHistorico").empty();
-    $("#tabelaHistorico").hide();
-    $("#vazioHistorico").hide();
-    $("#loadingHistorico").show();
-
-    var myModal = new bootstrap.Modal(
-      document.getElementById("modalHistorico")
-    );
-    myModal.show();
-
-    fetch(`/api/historico/${id}`)
-      .then((response) => response.json())
-      .then((data) => {
-        $("#loadingHistorico").hide();
-
-        if (data.length === 0) {
-          $("#vazioHistorico").show();
-          return;
-        }
-
-        $("#tabelaHistorico").show();
-        const tbody = $("#corpoTabelaHistorico");
-        const fmt = new Intl.NumberFormat("pt-BR", {
-          style: "currency",
-          currency: "BRL",
+    window.excluirHistoricoItem = function(id) {
+        if(!confirm("Apagar este registro do histórico?")) return;
+        let formData = new FormData(); formData.append('id', id);
+        
+        fetch("/api/historico/excluir", { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById(`hist-row-${id}`).remove();
+                if(document.querySelectorAll('#corpoTabelaHistorico tr').length === 0) {
+                    $('#tabelaHistorico').hide(); $('#vazioHistorico').show();
+                }
+            } else alert(data.message);
         });
+    }
 
-        data.forEach((item) => {
-          let tags = "";
-          if (item.lucro_real)
-            tags += `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1" title="Lucro Real">Real</span>`;
-          if (item.importacao_propria)
-            tags += `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" title="Importação Própria">Imp</span>`;
-          if (!tags)
-            tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary">Simples</span>`;
-
-          let impostosHtml = `
-                        <div class="d-flex gap-3 text-muted" style="font-size: 0.8rem;">
-                            <div><span class="fw-bold d-block text-body">ICMS</span> ${
-                              item.icms ? item.icms + "%" : "-"
-                            }</div>
-                            <div><span class="fw-bold d-block text-body">IPI</span> ${
-                              item.ipi ? item.ipi + "%" : "-"
-                            }</div>
-                            <div><span class="fw-bold d-block text-body">PIS</span> ${
-                              item.pis ? item.pis + "%" : "-"
-                            }</div>
-                            <div><span class="fw-bold d-block text-body">COFINS</span> ${
-                              item.cofins ? item.cofins + "%" : "-"
-                            }</div>
-                        </div>
-                    `;
-
-          // Linha com ID para poder remover depois
-          let row = `
-                        <tr id="hist-row-${item.id}">
-                            <td class="ps-4 fw-bold text-muted" style="white-space:nowrap;">${
-                              item.data_compra
-                            }</td>
-                            <td>
-                                <div class="fw-bold text-body text-truncate" style="max-width: 150px;">${
-                                  item.fornecedor || "Desconhecido"
-                                }</div>
-                                <div class="d-flex align-items-center mt-1">
-                                    <small class="text-muted me-2"><i class="fa-solid fa-file-invoice"></i> ${
-                                      item.nro_nf
-                                    }</small>
-                                    ${tags}
-                                </div>
-                            </td>
-                            <td class="text-center fw-bold text-primary">+${
-                              item.quantidade
-                            }</td>
-                            <td class="text-end text-muted">${fmt.format(
-                              item.preco_partida
-                            )}</td>
-                            <td class="text-end text-muted">${fmt.format(
-                              item.frete
-                            )}</td>
-                            <td>${impostosHtml}</td>
-                            <td class="text-end fw-bold text-success fs-6">${fmt.format(
-                              item.custo_final
-                            )}</td>
-                            <td class="text-center pe-4">
-                                <button class="btn btn-sm btn-outline-danger border-0" 
-                                        onclick="excluirHistoricoItem(${
-                                          item.id
-                                        })" 
-                                        title="Apagar registro">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-          tbody.append(row);
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-        $("#loadingHistorico").hide();
-        alert("Erro ao carregar histórico.");
-      });
-  };
+    function showToast(msg, type) {
+        let toastEl = document.getElementById('liveToast');
+        let toastBody = toastEl.querySelector('.toast-body');
+        toastEl.className = `toast align-items-center text-white border-0 bg-${type}`;
+        toastBody.innerHTML = msg;
+        new bootstrap.Toast(toastEl).show();
+    }
 </script>
 {% endblock %}

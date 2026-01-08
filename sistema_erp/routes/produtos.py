@@ -3,32 +3,59 @@ from utils.db import run_query, run_command
 
 produtos_bp = Blueprint('produtos', __name__)
 
-# --- 1. LISTAGEM ---
+# --- 1. LISTAGEM COM FILTROS AVANÇADOS ---
 @produtos_bp.route('/produtos')
 def index():
-    query_search = request.args.get('q', '')
-    
+    # Captura filtros da URL
+    q_busca = request.args.get('q', '')
+    q_fornecedor = request.args.get('filtro_fornecedor', '')
+    q_nf = request.args.get('filtro_nf', '')
+    q_origem = request.args.get('filtro_origem', '')
+
+    # Base da Query (com JOIN para buscar NF no histórico se necessário)
     sql = """
-        SELECT 
-            p.id, p.sku, p.nome, p.fornecedor, p.preco_final,
+        SELECT DISTINCT
+            p.id, p.sku, p.nome, p.fornecedor, p.preco_final, p.origem,
             COALESCE(
                 (SELECT quantidade FROM historico_compras 
                  WHERE produto_id = p.id ORDER BY id DESC LIMIT 1), 
             p.quantidade) as quantidade
         FROM produtos p
+        LEFT JOIN historico_compras h ON p.id = h.produto_id
+        WHERE 1=1
     """
     
     params = {}
-    if query_search:
-        sql += " WHERE p.nome LIKE :q OR p.sku LIKE :q"
-        params['q'] = f"%{query_search}%"
+
+    # Aplica Filtros Dinamicamente
+    if q_busca:
+        sql += " AND (p.nome LIKE :q OR p.sku LIKE :q)"
+        params['q'] = f"%{q_busca}%"
+    
+    if q_fornecedor:
+        sql += " AND p.fornecedor LIKE :forn"
+        params['forn'] = f"%{q_fornecedor}%"
+
+    if q_origem:
+        sql += " AND p.origem = :orig"
+        params['orig'] = q_origem
+
+    if q_nf:
+        sql += " AND h.nro_nf LIKE :nf"
+        params['nf'] = f"%{q_nf}%"
     
     sql += " ORDER BY p.nome"
     
     df = run_query(sql, params)
     produtos_lista = df.to_dict('records') if not df.empty else []
     
-    return render_template('produtos.html', produtos=produtos_lista)
+    # Busca lista única de fornecedores para o Select do filtro
+    df_forn = run_query("SELECT DISTINCT fornecedor FROM produtos WHERE fornecedor IS NOT NULL ORDER BY fornecedor")
+    lista_fornecedores = df_forn['fornecedor'].tolist() if not df_forn.empty else []
+    
+    return render_template('produtos.html', 
+                           produtos=produtos_lista, 
+                           fornecedores=lista_fornecedores)
 
 # --- 2. TELA NOVO ---
 @produtos_bp.route('/produtos/novo')
@@ -41,6 +68,7 @@ def salvar():
     sku = request.form.get('sku')
     nome = request.form.get('nome')
     fornecedor = request.form.get('fornecedor')
+    origem = request.form.get('origem', '0') # Padrão 0
     
     def get_float(name):
         try: return float(request.form.get(name, 0).replace(',', '.'))
@@ -50,34 +78,30 @@ def salvar():
         try: return int(request.form.get(name, 0))
         except: return 0
 
-    peso = get_float('peso')
-    altura = get_float('altura')
-    largura = get_float('largura')
-    comprimento = get_float('comprimento')
-    
-    qtd_cx_master = get_int('qtd_cx_master')
-    altura_master = get_float('altura_master')
-    largura_master = get_float('largura_master')
-    comprimento_master = get_float('comprimento_master')
+    params = {
+        'sku': sku, 'nome': nome, 'fornecedor': fornecedor, 'origem': origem,
+        'peso': get_float('peso'),
+        'altura': get_float('altura'), 
+        'largura': get_float('largura'), 
+        'comprimento': get_float('comprimento'),
+        'qtd_cx_master': get_int('qtd_cx_master'),
+        'altura_master': get_float('altura_master'), 
+        'largura_master': get_float('largura_master'), 
+        'comprimento_master': get_float('comprimento_master')
+    }
 
     sql = """
         INSERT INTO produtos (
-            sku, nome, fornecedor, preco_final, quantidade,
+            sku, nome, fornecedor, origem, preco_final, quantidade,
             peso, altura, largura, comprimento,
             qtd_cx_master, altura_master, largura_master, comprimento_master
         )
         VALUES (
-            :sku, :nome, :fornecedor, 0.00, 0,
+            :sku, :nome, :fornecedor, :origem, 0.00, 0,
             :peso, :altura, :largura, :comprimento,
             :qtd_cx_master, :altura_master, :largura_master, :comprimento_master
         )
     """
-    params = {
-        'sku': sku, 'nome': nome, 'fornecedor': fornecedor,
-        'peso': peso, 'altura': altura, 'largura': largura, 'comprimento': comprimento,
-        'qtd_cx_master': qtd_cx_master, 'altura_master': altura_master, 
-        'largura_master': largura_master, 'comprimento_master': comprimento_master
-    }
     
     if run_command(sql, params):
         flash('Produto cadastrado com sucesso!', 'success')
@@ -90,10 +114,7 @@ def salvar():
 @produtos_bp.route('/produtos/editar', methods=['POST'])
 def editar():
     id_prod = request.form.get('id')
-    nome = request.form.get('nome')
-    sku = request.form.get('sku')
-    fornecedor = request.form.get('fornecedor')
-
+    
     def get_float(name):
         try: return float(request.form.get(name, 0).replace(',', '.'))
         except: return 0.0
@@ -103,7 +124,11 @@ def editar():
         except: return 0
 
     params = {
-        'id': id_prod, 'nome': nome, 'sku': sku, 'fornecedor': fornecedor,
+        'id': id_prod, 
+        'nome': request.form.get('nome'), 
+        'sku': request.form.get('sku'), 
+        'fornecedor': request.form.get('fornecedor'),
+        'origem': request.form.get('origem'),
         'peso': get_float('peso'),
         'altura': get_float('altura'),
         'largura': get_float('largura'),
@@ -119,6 +144,7 @@ def editar():
             nome = :nome,
             sku = :sku,
             fornecedor = :fornecedor,
+            origem = :origem,
             peso = :peso,
             altura = :altura,
             largura = :largura,
@@ -145,13 +171,12 @@ def excluir():
     else:
         return jsonify({'success': False, 'message': 'Erro ao excluir produto.'}), 500
 
-# --- 6. API DETALHES (CORRIGIDA) ---
+# --- 6. API DETALHES ---
 @produtos_bp.route('/api/produto/detalhes/<int:id>', methods=['GET'])
 def get_produto_detalhes(id):
-    # REMOVIDO: importacao_propria (não existe na tabela produtos)
     query = """
         SELECT 
-            id, sku, nome, fornecedor, quantidade, preco_final, 
+            id, sku, nome, fornecedor, quantidade, preco_final, origem,
             peso, altura, largura, comprimento,
             qtd_cx_master, altura_master, largura_master, comprimento_master
         FROM produtos 
@@ -163,10 +188,10 @@ def get_produto_detalhes(id):
         
     p = df.iloc[0].to_dict()
     
+    # Tratamento de Nulos
     def safe_float(val): 
         try: return float(val) if val else 0.0
         except: return 0.0
-    
     def safe_int(val):
         try: return int(val) if val else 0
         except: return 0
@@ -175,12 +200,14 @@ def get_produto_detalhes(id):
     p['altura'] = safe_float(p.get('altura'))
     p['largura'] = safe_float(p.get('largura'))
     p['comprimento'] = safe_float(p.get('comprimento'))
-    
     p['qtd_cx_master'] = safe_int(p.get('qtd_cx_master'))
     p['altura_master'] = safe_float(p.get('altura_master'))
     p['largura_master'] = safe_float(p.get('largura_master'))
     p['comprimento_master'] = safe_float(p.get('comprimento_master'))
     
+    # Garante que origem não venha nulo
+    if not p.get('origem'): p['origem'] = '0'
+
     return jsonify(p)
 
 # --- 7. API HISTÓRICO ---
@@ -197,13 +224,10 @@ def get_historico(prod_id):
         WHERE produto_id = :id
         ORDER BY data_compra DESC, id DESC
     """
-    
     df = run_query(sql, {'id': prod_id})
-    
     if df.empty: return jsonify([])
     
     historico = df.to_dict('records')
-    
     for item in historico:
         try:
             if item['data_compra']:

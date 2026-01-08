@@ -44,7 +44,7 @@
                 </select>
               </div>
 
-              <div class="col-md-4" id="divSkuNovo" style="display: none">
+              <div class="col-md-3" id="divSkuNovo" style="display: none">
                 <label>Novo SKU</label>
                 <input
                   type="text"
@@ -53,7 +53,7 @@
                   class="form-control"
                 />
               </div>
-              <div class="col-md-8" id="divNomeNovo" style="display: none">
+              <div class="col-md-6" id="divNomeNovo" style="display: none">
                 <label>Nome do Produto</label>
                 <input
                   type="text"
@@ -62,28 +62,56 @@
                   class="form-control"
                 />
               </div>
+              <div class="col-md-3" id="divOrigemNovo" style="display: none">
+                <label>Origem</label>
+                <select
+                  class="form-select"
+                  name="origem_novo"
+                  style="font-size: 0.85rem"
+                >
+                  <option value="0">0 - Nacional</option>
+                  <option value="1">1 - Estrangeira (Imp. Direta)</option>
+                  <option value="2">2 - Estrangeira (Adq. Interna)</option>
+                  <option value="3">3 - Nacional (Imp. > 40%)</option>
+                  <option value="4">4 - Nacional (Básico)</option>
+                  <option value="5">5 - Nacional (Imp. < 40%)</option>
+                  <option value="6">6 - Estrangeira (s/ similar)</option>
+                  <option value="7">7 - Estrangeira (Adq. Int s/ sim.)</option>
+                  <option value="8">8 - Nacional (Imp. > 70%)</option>
+                </select>
+              </div>
 
               <div class="col-md-6">
                 <label>Fornecedor</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  name="fornecedor"
-                  id="inputFornecedor"
-                  list="listaFornecedores"
-                  autocomplete="off"
-                  placeholder="Selecione ou digite..."
-                />
-                <datalist id="listaFornecedores">
-                  {% for f in fornecedores %}
-                  <option value="{{ f }}">{% endfor %}</option>
-                </datalist>
+                <div class="input-group">
+                  <select
+                    class="form-select"
+                    id="selectFornecedor"
+                    name="fornecedor"
+                    required
+                  >
+                    <option value="">Selecione ou digite...</option>
+                    {% for f in fornecedores %}
+                    <option value="{{ f }}">{{ f }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div
+                  id="msgNovoFornecedor"
+                  class="text-success small mt-1"
+                  style="display: none"
+                >
+                  <i class="fa-solid fa-plus-circle"></i> Novo fornecedor será
+                  cadastrado.
+                </div>
               </div>
+
               <div class="col-md-6">
                 <label>Nº Nota Fiscal</label>
                 <input
                   type="text"
                   name="nro_nf"
+                  id="nro_nf"
                   class="form-control"
                   required
                 />
@@ -111,7 +139,6 @@
             <h5 class="fw-bold text-primary mb-3">
               <i class="fa-solid fa-money-bill-wave me-2"></i> Custos e Impostos
             </h5>
-
             <div class="bg-panel p-3 mb-4 d-flex gap-4 align-items-center">
               <div class="form-check form-switch">
                 <input
@@ -135,15 +162,14 @@
                   onchange="alterarTaxasImportacao()"
                 />
                 <label class="form-check-label fw-bold" for="checkImp"
-                  >Importação</label
+                  >Importação Própria</label
                 >
               </div>
             </div>
-
             <div class="row g-3 mb-4">
               <div class="col-md-4">
-                <label class="text-primary fw-bold">Preço Unit. (R$)</label>
-                <input
+                <label class="text-primary fw-bold">Preço Unit. (R$)</label
+                ><input
                   type="number"
                   step="0.01"
                   id="preco"
@@ -154,8 +180,8 @@
                 />
               </div>
               <div class="col-md-4">
-                <label>Frete Unit. (R$)</label>
-                <input
+                <label>Frete Unit. (R$)</label
+                ><input
                   type="number"
                   step="0.01"
                   id="frete"
@@ -165,8 +191,8 @@
                 />
               </div>
               <div class="col-md-4">
-                <label>Quantidade</label>
-                <input
+                <label>Quantidade</label
+                ><input
                   type="number"
                   name="quantidade"
                   class="form-control form-control-lg"
@@ -174,7 +200,6 @@
                 />
               </div>
             </div>
-
             <label class="d-block mb-2 text-muted small text-uppercase fw-bold"
               >Alíquotas (%)</label
             >
@@ -238,19 +263,16 @@
           >
             Resumo da Operação
           </h6>
-
           <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Custo Base</span>
-            <span class="fw-bold" id="lblBase">R$ 0,00</span>
+            <span class="text-muted">Custo Base</span
+            ><span class="fw-bold" id="lblBase">R$ 0,00</span>
           </div>
-
           <div class="d-flex justify-content-between mb-3">
-            <span class="text-success">Créditos Fiscais</span>
-            <span class="fw-bold text-success" id="lblCreditoTotal"
+            <span class="text-success">Créditos Fiscais</span
+            ><span class="fw-bold text-success" id="lblCreditoTotal"
               >- R$ 0,00</span
             >
           </div>
-
           <div
             class="p-3 rounded mb-4"
             style="background-color: rgba(0, 0, 0, 0.03)"
@@ -266,9 +288,7 @@
               <span id="indCOFINS">--</span>
             </div>
           </div>
-
           <div class="border-top border-secondary opacity-25 mb-3"></div>
-
           <div class="text-center">
             <small class="text-muted">Custo Final Unitário</small>
             <div class="display-5 fw-bold text-primary my-2" id="lblFinal">
@@ -280,7 +300,6 @@
               id="inputCustoFinal"
             />
           </div>
-
           <button
             type="submit"
             class="btn btn-primary w-100 py-3 mt-3 fw-bold rounded-3"
@@ -321,16 +340,15 @@
 {% endblock %} {% block scripts %}
 <script>
   $(document).ready(function () {
-    // --- BLOQUEIO DE ENTER ---
+    // Bloqueia Enter
     $("#formEntrada").on("keydown", function (event) {
-      // Se apertar Enter E não estiver em um botão ou textarea, bloqueia
       if (event.key === "Enter" && !$(event.target).is("button, textarea")) {
         event.preventDefault();
         return false;
       }
     });
 
-    // --- SELECT2 ---
+    // 1. Select2 Produto
     $("#selectProduto").select2({
       theme: "bootstrap-5",
       width: "100%",
@@ -341,25 +359,74 @@
       var el = $(e.params.data.element);
       var forn = el.data("fornecedor");
       var isImp = el.data("imp");
-      if (forn && forn !== "None") $("#inputFornecedor").val(forn);
+
+      // Auto-seleciona o fornecedor se ele existir na lista
+      if (forn && forn !== "None") {
+        if (
+          $("#selectFornecedor").find("option[value='" + forn + "']").length
+        ) {
+          $("#selectFornecedor").val(forn).trigger("change");
+        } else {
+          // Se o fornecedor do produto não estiver na lista (raro), cria a option
+          var newOption = new Option(forn, forn, true, true);
+          $("#selectFornecedor").append(newOption).trigger("change");
+        }
+      }
       $("#checkImp")
         .prop("checked", isImp == "1")
         .trigger("change");
     });
 
-    // --- CHECKBOX NOVO PRODUTO ---
-    $("#checkNovoProduto").change(function () {
-      if (this.checked) {
-        $("#divSelectProduto").hide();
-        $("#divSkuNovo, #divNomeNovo").show();
-        $("#selectProduto").val(null).trigger("change");
+    // 2. Select2 Fornecedor (Com Tags = Permite criar novo)
+    $("#selectFornecedor").select2({
+      theme: "bootstrap-5",
+      width: "100%",
+      placeholder: "Selecione ou digite um novo...",
+      tags: true, // Permite criar
+      createTag: function (params) {
+        var term = $.trim(params.term);
+        if (term === "") {
+          return null;
+        }
+        return { id: term, text: term, newTag: true };
+      },
+    });
+
+    // Evento para mostrar o aviso de "Novo Fornecedor"
+    $("#selectFornecedor").on("select2:select", function (e) {
+      var data = e.params.data;
+      if (data.newTag) {
+        $("#msgNovoFornecedor").fadeIn();
       } else {
-        $("#divSelectProduto").show();
-        $("#divSkuNovo, #divNomeNovo").hide();
+        $("#msgNovoFornecedor").fadeOut();
       }
     });
 
-    // --- CÁLCULOS FINANCEIROS ---
+    // Checkbox Novo Produto
+    $("#checkNovoProduto").change(function () {
+      if (this.checked) {
+        $("#divSelectProduto").hide();
+        $("#divSkuNovo, #divNomeNovo, #divOrigemNovo").show();
+        $("#selectProduto").val(null).trigger("change");
+        // Limpa fornecedor para obrigar a escolher
+        $("#selectFornecedor").val(null).trigger("change");
+      } else {
+        $("#divSelectProduto").show();
+        $("#divSkuNovo, #divNomeNovo, #divOrigemNovo").hide();
+      }
+    });
+
+    // ... (Funções Financeiras e AJAX mantidas iguais) ...
+    window.alterarTaxasImportacao = function () {
+      /* ... igual ... */
+    };
+    window.calcularCusto = function () {
+      /* ... igual ... */
+    };
+
+    // Copia a função calcularCusto e o submit AJAX do arquivo anterior aqui...
+    // Vou resumir para não ficar gigante, mas mantenha o código de cálculo que já te passei.
+
     window.alterarTaxasImportacao = function () {
       let isImport = $("#checkImp").is(":checked");
       if (isImport) {
@@ -383,17 +450,13 @@
 
       let valIpi = preco * (ipiPerc / 100);
       let valIcms = preco * (icmsPerc / 100);
-
-      // Tese do Século
       let basePisCofins = preco - valIcms;
       if (basePisCofins < 0) basePisCofins = 0;
-
       let valPis = basePisCofins * (pisPerc / 100);
       let valCofins = basePisCofins * (cofinsPerc / 100);
-
       let baseCusto = preco + frete + valIpi;
-      let totalCreditos = 0;
 
+      let totalCreditos = 0;
       const fmt = new Intl.NumberFormat("pt-BR", {
         style: "currency",
         currency: "BRL",
@@ -405,12 +468,10 @@
         $("#indPIS").text(fmt.format(valPis));
         $("#indCOFINS").text(fmt.format(valCofins));
       } else {
-        totalCreditos = 0;
         $("#indICMS, #indPIS, #indCOFINS").text("--");
       }
 
       let custoFinal = baseCusto - totalCreditos;
-
       $("#lblBase").text(fmt.format(baseCusto));
       $("#lblCreditoTotal").text(
         (isLucroReal ? "- " : "") + fmt.format(totalCreditos)
@@ -422,26 +483,19 @@
     $(".calc-input").on("input", calcularCusto);
     calcularCusto();
 
-    // --- SUBMIT VIA AJAX ---
     $("#formEntrada").on("submit", function (e) {
       e.preventDefault();
-
       let btn = $("#btnConfirmar");
       let spinner = btn.find(".spinner-border");
       let form = this;
-
       btn.prop("disabled", true);
       spinner.removeClass("d-none");
 
-      fetch(form.action, {
-        method: "POST",
-        body: new FormData(form),
-      })
+      fetch(form.action, { method: "POST", body: new FormData(form) })
         .then((response) => response.json())
         .then((data) => {
           btn.prop("disabled", false);
           spinner.addClass("d-none");
-
           let toastEl = document.getElementById("toastEntrada");
           let toastBody = document.getElementById("toastMsg");
           let toast = new bootstrap.Toast(toastEl);
@@ -452,8 +506,10 @@
             toastBody.innerHTML = `<i class="fa-solid fa-check-circle me-2"></i> ${data.message}`;
             toast.show();
 
-            $("#preco").val("");
-            $("#nro_nf").val("");
+            $("#preco, #nro_nf, #inputSkuNovo, #inputNomeNovo").val("");
+            if ($("#checkNovoProduto").is(":checked")) {
+              $("#checkNovoProduto").click();
+            }
             calcularCusto();
           } else {
             toastEl.classList.remove("bg-success");
