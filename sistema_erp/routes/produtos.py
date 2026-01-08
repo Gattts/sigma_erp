@@ -1,10 +1,11 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from utils.db import run_query, run_command
-from sqlalchemy import create_engine, text
-import requests
 import base64
 import os
 from datetime import datetime
+import pymysql
+from urllib.parse import urlparse
+import requests
 
 produtos_bp = Blueprint('produtos', __name__)
 
@@ -210,94 +211,118 @@ def excluir_historico_item():
         return jsonify({'success': False, 'message': 'Erro ao excluir.'}), 500
 
 # ==============================================================================
-# 4. INTEGRAÇÃO BLING (Token Renovável no Banco ETL)
+# 4. INTEGRAÇÃO BLING (VERSÃO LEVE - SEM SQLALCHEMY/PANDAS)
 # ==============================================================================
 @produtos_bp.route('/api/integracao/bling/importar', methods=['POST'])
 def importar_do_bling():
-    # 1. Configuração do Banco ETL
     etl_db_url = os.getenv('ETL_DB_URL')
     if not etl_db_url:
-        return jsonify({'success': False, 'message': 'Configuração ETL_DB_URL não encontrada no Render.'})
+        return jsonify({'success': False, 'message': 'ETL_DB_URL não configurada.'})
 
     creds = None
-    engine_etl = None
-
+    
+    # 1. Conexão Direta e Leve com Banco ETL (Sem SQLAlchemy Engine)
     try:
-        engine_etl = create_engine(etl_db_url)
-        with engine_etl.connect() as conn:
-            # Busca empresa ATIVA
-            query = text("SELECT id, client_id, client_secret, refresh_token FROM empresas_bling WHERE ativo = 1 LIMIT 1")
-            res = conn.execute(query).mappings().first()
-            if not res:
-                return jsonify({'success': False, 'message': 'Nenhuma empresa ativa encontrada no banco de credenciais.'})
-            creds = dict(res)
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Erro conexão Banco ETL: {str(e)}'})
+        # Parse da URL: mysql+pymysql://user:pass@host:port/db
+        # Remove prefixo se existir
+        url_clean = etl_db_url.replace("mysql+pymysql://", "").replace("mysql://", "")
+        
+        # Separa credenciais
+        if "@" in url_clean:
+            auth, rest = url_clean.split("@")
+            user, password = auth.split(":")
+            if "/" in rest:
+                host_port, db_name = rest.split("/")
+                if ":" in host_port:
+                    host, port = host_port.split(":")
+                    port = int(port)
+                else:
+                    host, port = host_port, 3306
+            else:
+                raise ValueError("Formato de URL inválido")
+        else:
+            raise ValueError("Formato de URL inválido")
 
-    # 2. Renovação do Token
+        # Conecta Leve
+        conn = pymysql.connect(host=host, user=user, password=password, database=db_name, port=port, cursorclass=pymysql.cursors.DictCursor)
+        
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id, client_id, client_secret, refresh_token FROM empresas_bling WHERE ativo = 1 LIMIT 1")
+                creds = cursor.fetchone()
+        finally:
+            conn.close() # Fecha rápido para liberar memória
+
+        if not creds:
+            return jsonify({'success': False, 'message': 'Nenhuma empresa ativa no banco ETL.'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro conexão ETL: {str(e)}'})
+
+    # 2. Renovação Token
     auth_str = f"{creds['client_id']}:{creds['client_secret']}"
     b64_auth = base64.b64encode(auth_str.encode()).decode()
-    headers_auth = {'Authorization': f'Basic {b64_auth}', 'Content-Type': 'application/x-www-form-urlencoded'}
+    headers = {'Authorization': f'Basic {b64_auth}', 'Content-Type': 'application/x-www-form-urlencoded'}
     
-    access_token = None
     try:
-        resp = requests.post('https://www.bling.com.br/Api/v3/oauth/token', headers=headers_auth, 
+        resp = requests.post('https://www.bling.com.br/Api/v3/oauth/token', headers=headers, 
                              data={'grant_type': 'refresh_token', 'refresh_token': creds['refresh_token']}, timeout=15)
         
         if resp.status_code == 200:
-            data_token = resp.json()
-            access_token = data_token['access_token']
-            new_refresh = data_token['refresh_token']
+            data = resp.json()
+            access_token = data['access_token']
+            new_refresh = data['refresh_token']
             
-            # Salva novo token no banco ETL para não quebrar outros scripts
+            # Salva novo token (Conexão rápida de novo)
             try:
-                with engine_etl.begin() as conn:
-                    conn.execute(text("UPDATE empresas_bling SET refresh_token = :rt, access_token = :at, updated_at = NOW() WHERE id = :id"), 
-                                {'rt': new_refresh, 'at': access_token, 'id': creds['id']})
-            except Exception as db_err:
-                return jsonify({'success': False, 'message': f'Falha ao salvar token renovado: {str(db_err)}'})
+                conn_up = pymysql.connect(host=host, user=user, password=password, database=db_name, port=port)
+                with conn_up.cursor() as cursor:
+                    cursor.execute("UPDATE empresas_bling SET refresh_token = %s, access_token = %s, updated_at = NOW() WHERE id = %s", 
+                                  (new_refresh, access_token, creds['id']))
+                conn_up.commit()
+                conn_up.close()
+            except: pass # Se falhar o update, segue com o token em memória
         else:
-            return jsonify({'success': False, 'message': f'Bling recusou autenticação: {resp.text}'})
+            return jsonify({'success': False, 'message': f'Bling recusou: {resp.text}'})
+            
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erro comunicação Bling: {str(e)}'})
+        return jsonify({'success': False, 'message': f'Erro Auth: {str(e)}'})
 
-    # 3. Importação dos Produtos
-    headers_api = {'Authorization': f'Bearer {access_token}'}
-    url_produtos = 'https://www.bling.com.br/Api/v3/produtos?limit=100&criterio=1&tipo=P'
-    
+    # 3. Importação (Processamento Otimizado)
     try:
-        r = requests.get(url_produtos, headers=headers_api, timeout=20)
-        dados = r.json().get('data', [])
+        r = requests.get('https://www.bling.com.br/Api/v3/produtos?limit=100&criterio=1&tipo=P', 
+                         headers={'Authorization': f'Bearer {access_token}'}, timeout=20)
         
-        if not dados:
-            return jsonify({'success': True, 'message': 'Conexão OK, nenhum produto encontrado.'})
+        if r.status_code != 200: return jsonify({'success': False, 'message': 'Erro API Produtos.'})
+        
+        itens = r.json().get('data', [])
+        if not itens: return jsonify({'success': True, 'message': 'Nenhum produto encontrado.'})
 
-        count_novos = 0
-        count_up = 0
-
-        for p in dados:
+        novos, atualizados = 0, 0
+        
+        for p in itens:
             sku = str(p.get('codigo', '')).strip()
             nome = str(p.get('nome', '')).strip()
-            preco = float(p.get('preco', 0))
-            origem = str(p.get('origem', '0'))
+            # Tratamento seguro de preço
+            try: preco = float(p.get('preco', 0))
+            except: preco = 0.0
             
+            origem = str(p.get('origem', '0'))
             if not sku or not nome: continue
 
+            # Busca ID local (Usa sua função run_query existente que é segura)
             existe = run_query("SELECT id FROM produtos WHERE sku = :sku", {'sku': sku})
             
             if existe.empty:
-                sql_ins = """
-                    INSERT INTO produtos (sku, nome, fornecedor, origem, preco_final, quantidade)
-                    VALUES (:sku, :nome, 'Bling Import', :origem, :preco, 0)
-                """
-                run_command(sql_ins, {'sku': sku, 'nome': nome, 'origem': origem, 'preco': preco})
-                count_novos += 1
+                sql = "INSERT INTO produtos (sku, nome, fornecedor, origem, preco_final, quantidade) VALUES (:s, :n, 'Bling Import', :o, :p, 0)"
+                run_command(sql, {'s': sku, 'n': nome, 'o': origem, 'p': preco})
+                novos += 1
             else:
-                sql_up = "UPDATE produtos SET nome = :nome, preco_final = :preco, origem = :origem WHERE sku = :sku"
-                run_command(sql_up, {'sku': sku, 'nome': nome, 'preco': preco, 'origem': origem})
-                count_up += 1
+                sql = "UPDATE produtos SET nome = :n, preco_final = :p, origem = :o WHERE sku = :s"
+                run_command(sql, {'s': sku, 'n': nome, 'o': origem, 'p': preco})
+                atualizados += 1
 
-        return jsonify({'success': True, 'message': f'Sincronização OK! Novos: {count_novos}, Atualizados: {count_up}'})
+        return jsonify({'success': True, 'message': f'Sucesso! {novos} novos, {atualizados} atualizados.'})
 
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erro na importação: {str(e)}'})
+        return jsonify({'success': False, 'message': f'Erro processamento: {str(e)}'})
