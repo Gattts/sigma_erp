@@ -8,9 +8,15 @@
             <h3 class="fw-bold m-0">Cadastro de Produtos</h3>
             <p class="text-muted small m-0">Gerencie estoque, origens e custos</p>
         </div>
-        <a href="{{ url_for('produtos.novo') }}" class="btn btn-primary fw-bold px-4 shadow-sm">
-            <i class="fa-solid fa-plus me-2"></i> Nova Entrada
-        </a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" onclick="sincronizarBling()" id="btnBling">
+                <i class="fa-solid fa-cloud-arrow-down me-2"></i> Importar Bling
+            </button>
+            
+            <a href="{{ url_for('produtos.novo') }}" class="btn btn-primary fw-bold px-4 shadow-sm">
+                <i class="fa-solid fa-plus me-2"></i> Nova Entrada
+            </a>
+        </div>
     </div>
 
     <div class="st-card p-3 mb-4 bg-white">
@@ -353,10 +359,11 @@
 
 {% block scripts %}
 <script>
-    // Inicializa Filtros
+    // --- 1. INICIALIZAÇÃO SELECT2 ---
+    // Filtros
     $('.select2-filter').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Selecione...' });
 
-    // Inicializa Select2 do Modal de Edição (IMPORTANTE: dropdownParent)
+    // Select2 do Modal de Edição (IMPORTANTE: dropdownParent)
     $('#edit-fornecedor').select2({
         theme: 'bootstrap-5',
         dropdownParent: $('#modalEditar'),
@@ -372,7 +379,38 @@
 
     let currentProduto = null;
 
-    // --- ABRIR DETALHES ---
+    // --- 2. SCRIPT DE IMPORTAÇÃO BLING ---
+    window.sincronizarBling = function() {
+        let btn = document.getElementById('btnBling');
+        let icon = btn.querySelector('i');
+        
+        btn.disabled = true;
+        let originalIcon = icon.className;
+        icon.className = 'fa-solid fa-circle-notch fa-spin me-2';
+        
+        showToast('<i class="fa-solid fa-rotate me-2"></i> Conectando ao Bling, aguarde...', 'primary'); 
+
+        fetch('/api/integracao/bling/importar', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                showToast(data.message, 'success');
+                setTimeout(() => { window.location.reload(); }, 1500);
+            } else {
+                alert('Erro: ' + data.message);
+                btn.disabled = false;
+                icon.className = originalIcon;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Erro de conexão com o servidor.');
+            btn.disabled = false;
+            icon.className = originalIcon;
+        });
+    }
+
+    // --- 3. ABRIR DETALHES ---
     window.abrirDetalhes = function(id) {
         var myModal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
         document.getElementById('loadingDetalhes').style.display = 'block';
@@ -405,7 +443,7 @@
         });
     }
 
-    // --- HABILITAR EDIÇÃO ---
+    // --- 4. HABILITAR EDIÇÃO ---
     window.habilitarEdicao = function() {
         if(!currentProduto) return;
         
@@ -439,7 +477,7 @@
         document.getElementById('edit-comprimento-master').value = currentProduto.comprimento_master;
     }
 
-    // --- SALVAR EDIÇÃO ---
+    // --- 5. SALVAR EDIÇÃO ---
     document.getElementById('formEditarProduto').addEventListener('submit', function(e) {
         e.preventDefault(); 
         const btn = document.getElementById('btnSalvarEdicao');
@@ -467,7 +505,7 @@
         });
     });
 
-    // --- EXCLUIR PRODUTO ---
+    // --- 6. EXCLUIR PRODUTO ---
     window.excluirProduto = function(id, nome) {
         if(!confirm(`Excluir "${nome}"?\nIsso apagará o produto e todo o histórico.`)) return;
         
@@ -485,7 +523,7 @@
         });
     }
 
-    // --- HISTÓRICO ---
+    // --- 7. HISTÓRICO ---
     window.abrirHistorico = function(id, nomeProduto) {
         $('#modalTitulo').text(nomeProduto); 
         $('#corpoTabelaHistorico').empty(); 
@@ -545,6 +583,7 @@
         });
     }
 
+    // --- FUNÇÃO AUXILIAR TOAST ---
     function showToast(msg, type) {
         let toastEl = document.getElementById('liveToast');
         let toastBody = toastEl.querySelector('.toast-body');
