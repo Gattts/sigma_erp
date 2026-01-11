@@ -12,7 +12,6 @@
             <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" onclick="sincronizarBling()" id="btnBling">
                 <i class="fa-solid fa-cloud-arrow-down me-2"></i> Importar Bling
             </button>
-            
             <a href="{{ url_for('produtos.novo') }}" class="btn btn-primary fw-bold px-4 shadow-sm">
                 <i class="fa-solid fa-plus me-2"></i> Nova Entrada
             </a>
@@ -29,7 +28,6 @@
                         <input type="text" name="q" class="form-control border-start-0" placeholder="Digite..." value="{{ request.args.get('q', '') }}">
                     </div>
                 </div>
-
                 <div class="col-md-3">
                     <label class="small text-muted fw-bold mb-1">Fornecedor</label>
                     <select class="form-select select2-filter" name="filtro_fornecedor">
@@ -39,12 +37,10 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="col-md-2">
                     <label class="small text-muted fw-bold mb-1">Nº Nota Fiscal</label>
                     <input type="text" name="filtro_nf" class="form-control" placeholder="Ex: 12345" value="{{ request.args.get('filtro_nf', '') }}">
                 </div>
-
                 <div class="col-md-3">
                     <label class="small text-muted fw-bold mb-1">Origem</label>
                     <select class="form-select" name="filtro_origem" style="font-size: 0.9rem;">
@@ -60,7 +56,6 @@
                         <option value="8" {{ 'selected' if request.args.get('filtro_origem') == '8' else '' }}>8 - Nacional (Imp. > 70%)</option>
                     </select>
                 </div>
-
                 <div class="col-md-1">
                     <button type="submit" class="btn btn-outline-primary w-100" title="Aplicar Filtros">
                         <i class="fa-solid fa-filter"></i>
@@ -88,18 +83,16 @@
                     {% for p in produtos %}
                     <tr style="cursor: pointer;" onclick="abrirDetalhes('{{ p.id }}')" id="row-{{ p.id }}">
                         <td class="ps-4">
-                            <div class="fw-bold text-body" id="row-name-{{ p.id }}">{{ p.nome }}</div>
+                            <div class="fw-bold text-adaptive" id="row-name-{{ p.id }}">{{ p.nome }}</div>
                             <span class="badge bg-light text-dark border mt-1" id="row-sku-{{ p.id }}">{{ p.sku }}</span>
                         </td>
                         <td class="text-muted small">{{ p.fornecedor or '---' }}</td>
                         <td class="text-center">
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" title="Código Origem">
-                                {{ p.origem }}
-                            </span>
+                            <span class="badge badge-neutral" title="Código Origem">{{ p.origem }}</span>
                         </td>
                         <td class="text-center">
                             {% if p.quantidade > 0 %}
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">{{ p.quantidade }} un</span>
+                                <span class="badge badge-neutral rounded-pill px-3">{{ p.quantidade }} un</span>
                             {% else %}
                                 <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3">Zerado</span>
                             {% endif %}
@@ -109,18 +102,10 @@
                         </td>
                         <td class="text-center pe-4" onclick="event.stopPropagation()">
                             <div class="btn-group shadow-sm" role="group">
-                                <button type="button" 
-                                        class="btn btn-light btn-sm border" 
-                                        onclick="abrirHistorico(this.dataset.id, this.dataset.nome)"
-                                        data-id="{{ p.id }}"
-                                        data-nome="{{ p.nome }}"
-                                        title="Histórico">
+                                <button type="button" class="btn btn-light btn-sm border" onclick="abrirHistorico(this.dataset.id, this.dataset.nome)" data-id="{{ p.id }}" data-nome="{{ p.nome }}" title="Histórico">
                                     <i class="fa-solid fa-clock-rotate-left text-muted"></i>
                                 </button>
-                                <button type="button" 
-                                        class="btn btn-light btn-sm border text-danger" 
-                                        onclick="excluirProduto('{{ p.id }}', '{{ p.nome }}')"
-                                        title="Excluir">
+                                <button type="button" class="btn btn-light btn-sm border text-danger" onclick="excluirProduto('{{ p.id }}', '{{ p.nome }}')" title="Excluir">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </div>
@@ -138,27 +123,26 @@
             </div>
         {% endif %}
     </div>
-
 </div>
 
 <div class="modal fade" id="modalDetalhes" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-panel border-bottom">
-                <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-cube me-2"></i> Ficha Técnica</h5>
+                <h5 class="modal-title fw-bold text-adaptive"><i class="fa-solid fa-cube me-2"></i> Ficha Técnica</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div id="loadingDetalhes" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                <div id="loadingDetalhes" class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
                 
                 <div id="conteudoDetalhes" style="display: none;">
                     <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
                         <div>
                             <span id="det-sku" class="badge bg-secondary mb-2">SKU</span>
-                            <h4 id="det-nome" class="fw-bold lh-sm mb-1">Nome do Produto</h4>
+                            <h4 id="det-nome" class="fw-bold lh-sm mb-1 text-adaptive">Nome do Produto</h4>
                             <span id="det-fornecedor" class="text-muted small">Fornecedor</span>
                             <span class="mx-2 text-muted">|</span>
-                            <span class="text-muted small">Origem: <strong id="det-origem-text" class="text-dark"></strong></span>
+                            <span class="text-muted small">Origem: <strong id="det-origem-text" class="text-adaptive"></strong></span>
                         </div>
                         <div class="text-end">
                             <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Custo Unitário</small>
@@ -168,28 +152,28 @@
 
                     <div class="row g-4">
                         <div class="col-md-6 border-end">
-                            <h6 class="text-primary fw-bold text-uppercase mb-3 small"><i class="fa-solid fa-box me-2"></i> Unitário</h6>
+                            <h6 class="text-muted fw-bold text-uppercase mb-3 small"><i class="fa-solid fa-box me-2"></i> Unitário</h6>
                             <div class="row g-2 text-center mb-3">
-                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">ALTURA</small><strong class="text-body"><span id="det-altura">0</span> cm</strong></div></div>
-                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">LARGURA</small><strong class="text-body"><span id="det-largura">0</span> cm</strong></div></div>
-                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">COMPR.</small><strong class="text-body"><span id="det-comprimento">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">ALTURA</small><strong class="text-adaptive"><span id="det-altura">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">LARGURA</small><strong class="text-adaptive"><span id="det-largura">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">COMPR.</small><strong class="text-adaptive"><span id="det-comprimento">0</span> cm</strong></div></div>
                             </div>
                             <div class="p-2 bg-light rounded border d-flex justify-content-between align-items-center">
                                 <small class="text-muted fw-bold ps-2">PESO</small>
-                                <span class="fw-bold text-body pe-2"><span id="det-peso">0</span> kg</span>
+                                <span class="fw-bold text-adaptive pe-2"><span id="det-peso">0</span> kg</span>
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <h6 class="text-warning fw-bold text-uppercase mb-3 small"><i class="fa-solid fa-boxes-stacked me-2"></i> Caixa Master</h6>
-                            <div class="p-2 mb-3 bg-warning bg-opacity-10 rounded border border-warning border-opacity-25 d-flex justify-content-between align-items-center">
-                                <small class="text-body fw-bold ps-2">QTD NA CAIXA</small>
-                                <span class="fw-bold text-body pe-2"><span id="det-qtd-master">0</span> un</span>
+                            <h6 class="text-muted fw-bold text-uppercase mb-3 small"><i class="fa-solid fa-boxes-stacked me-2"></i> Caixa Master</h6>
+                            <div class="p-2 mb-3 bg-light rounded border d-flex justify-content-between align-items-center">
+                                <small class="text-muted fw-bold ps-2">QTD NA CAIXA</small>
+                                <span class="fw-bold text-adaptive pe-2"><span id="det-qtd-master">0</span> un</span>
                             </div>
                             <div class="row g-2 text-center">
-                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">ALTURA</small><strong class="text-body"><span id="det-altura-master">0</span> cm</strong></div></div>
-                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">LARGURA</small><strong class="text-body"><span id="det-largura-master">0</span> cm</strong></div></div>
-                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">COMPR.</small><strong class="text-body"><span id="det-comprimento-master">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">ALTURA</small><strong class="text-adaptive"><span id="det-altura-master">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">LARGURA</small><strong class="text-adaptive"><span id="det-largura-master">0</span> cm</strong></div></div>
+                                <div class="col-4"><div class="p-2 bg-light rounded border"><small class="d-block text-muted" style="font-size:0.65rem;">COMPR.</small><strong class="text-adaptive"><span id="det-comprimento-master">0</span> cm</strong></div></div>
                             </div>
                         </div>
                     </div>
@@ -211,11 +195,11 @@
             <form id="formEditarProduto">
                 <input type="hidden" name="id" id="edit-id">
                 
-                <div class="modal-header bg-primary text-white border-bottom-0">
-                    <h5 class="modal-title fw-bold">
+                <div class="modal-header bg-panel border-bottom">
+                    <h5 class="modal-title fw-bold text-adaptive">
                         <i class="fa-solid fa-pen-to-square me-2"></i> Editar Produto
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 
                 <div class="modal-body p-4">
@@ -257,7 +241,7 @@
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="card border h-100">
-                                <div class="card-header bg-light fw-bold text-primary small text-uppercase">Medidas Unitárias</div>
+                                <div class="card-header bg-light fw-bold text-muted small text-uppercase">Medidas Unitárias</div>
                                 <div class="card-body p-3">
                                     <div class="row g-2">
                                         <div class="col-6 mb-2">
@@ -274,12 +258,12 @@
                         </div>
                         <div class="col-md-6">
                             <div class="card border h-100">
-                                <div class="card-header bg-light fw-bold text-warning small text-uppercase">Caixa Master</div>
+                                <div class="card-header bg-light fw-bold text-muted small text-uppercase">Caixa Master</div>
                                 <div class="card-body p-3">
                                     <div class="row g-2">
                                         <div class="col-6 mb-2">
                                             <label class="small text-muted fw-bold">Qtd Master</label>
-                                            <input type="number" name="qtd_cx_master" id="edit-qtd-master" class="form-control border-warning">
+                                            <input type="number" name="qtd_cx_master" id="edit-qtd-master" class="form-control">
                                         </div>
                                         <div class="col-6 mb-2"></div>
                                         <div class="col-4"><label class="small text-muted">Alt</label><input type="number" step="0.01" name="altura_master" id="edit-altura-master" class="form-control"></div>
@@ -309,7 +293,7 @@
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-panel border-bottom">
                 <div>
-                    <h5 class="modal-title fw-bold" id="modalTitulo">Histórico</h5>
+                    <h5 class="modal-title fw-bold text-adaptive" id="modalTitulo">Histórico</h5>
                     <p class="text-muted small m-0 mb-1">Detalhamento completo de custos e impostos</p>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -319,11 +303,13 @@
                     <table class="table table-hover align-middle mb-0" id="tabelaHistorico" style="font-size: 0.9rem;">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-4">Data</th>
-                                <th>Origem</th> <th class="text-center">Qtd</th>
-                                <th class="text-end">Preço NF</th>
-                                <th class="text-end">Frete</th>
-                                <th>Impostos (%)</th> <th class="text-end">Custo Final</th>
+                                <th class="ps-4 text-adaptive">Data</th>
+                                <th class="text-adaptive">Origem / Fornecedor</th> 
+                                <th class="text-center text-adaptive">Qtd</th>
+                                <th class="text-end text-adaptive">Preço NF</th>
+                                <th class="text-end text-adaptive">Frete</th>
+                                <th class="text-adaptive">Impostos (%)</th> 
+                                <th class="text-end text-adaptive">Custo Final</th>
                                 <th class="text-center pe-4" style="width: 50px;"></th>
                             </tr>
                         </thead>
@@ -331,7 +317,7 @@
                     </table>
                 </div>
                 <div id="loadingHistorico" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="spinner-border text-secondary" role="status"></div>
                     <p class="text-muted small mt-2">Carregando dados...</p>
                 </div>
                 <div id="vazioHistorico" class="text-center py-5" style="display:none;">
@@ -359,171 +345,147 @@
 
 {% block scripts %}
 <script>
-    // --- 1. INICIALIZAÇÃO SELECT2 ---
-    // Filtros
     $('.select2-filter').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Selecione...' });
-
-    // Select2 do Modal de Edição (IMPORTANTE: dropdownParent)
     $('#edit-fornecedor').select2({
-        theme: 'bootstrap-5',
-        dropdownParent: $('#modalEditar'),
-        tags: true, // Permite criar novo
-        placeholder: 'Selecione ou crie...',
-        width: '100%',
-        createTag: function (params) {
-            var term = $.trim(params.term);
-            if (term === '') { return null; }
-            return { id: term, text: term, newTag: true };
-        }
+        theme: 'bootstrap-5', dropdownParent: $('#modalEditar'), tags: true, placeholder: 'Selecione ou crie...', width: '100%',
+        createTag: function (params) { var term = $.trim(params.term); if (term === '') { return null; } return { id: term, text: term, newTag: true }; }
     });
 
     let currentProduto = null;
 
-    // --- 2. SCRIPT DE IMPORTAÇÃO BLING ---
     window.sincronizarBling = function() {
-        let btn = document.getElementById('btnBling');
-        let icon = btn.querySelector('i');
-        
-        btn.disabled = true;
-        let originalIcon = icon.className;
-        icon.className = 'fa-solid fa-circle-notch fa-spin me-2';
-        
+        let btn = document.getElementById('btnBling'); let icon = btn.querySelector('i');
+        btn.disabled = true; let originalIcon = icon.className; icon.className = 'fa-solid fa-circle-notch fa-spin me-2';
         showToast('<i class="fa-solid fa-rotate me-2"></i> Conectando ao Bling, aguarde...', 'primary'); 
-
-        fetch('/api/integracao/bling/importar', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                showToast(data.message, 'success');
-                setTimeout(() => { window.location.reload(); }, 1500);
-            } else {
-                alert('Erro: ' + data.message);
-                btn.disabled = false;
-                icon.className = originalIcon;
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Erro de conexão com o servidor.');
-            btn.disabled = false;
-            icon.className = originalIcon;
-        });
+        fetch('/api/integracao/bling/importar', { method: 'POST' }).then(res => res.json()).then(data => {
+            if(data.success) { showToast(data.message, 'success'); setTimeout(() => { window.location.reload(); }, 1500); } 
+            else { alert('Erro: ' + data.message); btn.disabled = false; icon.className = originalIcon; }
+        }).catch(err => { console.error(err); alert('Erro de conexão.'); btn.disabled = false; icon.className = originalIcon; });
     }
 
-    // --- 3. ABRIR DETALHES ---
+    // --- CORREÇÃO: Tratamento de erro no fetch ---
     window.abrirDetalhes = function(id) {
         var myModal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
         document.getElementById('loadingDetalhes').style.display = 'block';
         document.getElementById('conteudoDetalhes').style.display = 'none';
         myModal.show();
 
-        fetch('/api/produto/detalhes/' + id).then(res => res.json()).then(data => {
-            if(data.error) return;
-            currentProduto = data;
-            
-            document.getElementById('det-nome').innerText = data.nome;
-            document.getElementById('det-sku').innerText = data.sku;
-            document.getElementById('det-fornecedor').innerText = data.fornecedor;
-            document.getElementById('det-origem-text').innerText = data.origem; 
-            
-            const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('det-preco').innerText = fmt.format(data.preco_final);
+        fetch('/api/produto/detalhes/' + id)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loadingDetalhes').style.display = 'none';
+                if(data.error) {
+                    alert("Erro ao carregar produto: " + data.error);
+                    return; 
+                }
+                
+                currentProduto = data;
+                
+                document.getElementById('det-nome').innerText = data.nome;
+                document.getElementById('det-sku').innerText = data.sku;
+                document.getElementById('det-fornecedor').innerText = data.fornecedor;
+                document.getElementById('det-origem-text').innerText = data.origem; 
+                
+                const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+                document.getElementById('det-preco').innerText = fmt.format(data.preco_final);
 
-            document.getElementById('det-peso').innerText = data.peso.toFixed(3);
-            document.getElementById('det-altura').innerText = data.altura.toFixed(1);
-            document.getElementById('det-largura').innerText = data.largura.toFixed(1);
-            document.getElementById('det-comprimento').innerText = data.comprimento.toFixed(1);
-            document.getElementById('det-qtd-master').innerText = data.qtd_cx_master;
-            document.getElementById('det-altura-master').innerText = data.altura_master.toFixed(1);
-            document.getElementById('det-largura-master').innerText = data.largura_master.toFixed(1);
-            document.getElementById('det-comprimento-master').innerText = data.comprimento_master.toFixed(1);
+                document.getElementById('det-peso').innerText = data.peso ? data.peso.toFixed(3) : "0.000";
+                document.getElementById('det-altura').innerText = data.altura ? data.altura.toFixed(1) : "0.0";
+                document.getElementById('det-largura').innerText = data.largura ? data.largura.toFixed(1) : "0.0";
+                document.getElementById('det-comprimento').innerText = data.comprimento ? data.comprimento.toFixed(1) : "0.0";
+                
+                document.getElementById('det-qtd-master').innerText = data.qtd_cx_master || "0";
+                document.getElementById('det-altura-master').innerText = data.altura_master ? data.altura_master.toFixed(1) : "0.0";
+                document.getElementById('det-largura-master').innerText = data.largura_master ? data.largura_master.toFixed(1) : "0.0";
+                document.getElementById('det-comprimento-master').innerText = data.comprimento_master ? data.comprimento_master.toFixed(1) : "0.0";
 
-            document.getElementById('loadingDetalhes').style.display = 'none';
-            document.getElementById('conteudoDetalhes').style.display = 'block';
-        });
+                document.getElementById('conteudoDetalhes').style.display = 'block';
+            })
+            .catch(err => {
+                document.getElementById('loadingDetalhes').style.display = 'none';
+                alert("Erro de comunicação com o servidor.");
+                console.error(err);
+            });
     }
 
-    // --- 4. HABILITAR EDIÇÃO ---
+    // --- CORREÇÃO: Timeout para troca de modais (evita "sumir") ---
     window.habilitarEdicao = function() {
         if(!currentProduto) return;
         
-        bootstrap.Modal.getInstance(document.getElementById('modalDetalhes')).hide();
-        var editModal = new bootstrap.Modal(document.getElementById('modalEditar'));
-        editModal.show();
+        try {
+            // Fecha o primeiro modal
+            const detalheEl = document.getElementById('modalDetalhes');
+            const modalDetalhes = bootstrap.Modal.getInstance(detalheEl);
+            if(modalDetalhes) modalDetalhes.hide();
 
-        document.getElementById('edit-id').value = currentProduto.id;
-        document.getElementById('edit-sku').value = currentProduto.sku;
-        document.getElementById('edit-nome').value = currentProduto.nome;
-        document.getElementById('edit-origem').value = currentProduto.origem;
+            // Pequeno delay para garantir que o backdrop não bugue
+            setTimeout(() => {
+                var editModal = new bootstrap.Modal(document.getElementById('modalEditar'));
+                editModal.show();
 
-        // Lógica do Select2 de Fornecedor
-        var fornAtual = currentProduto.fornecedor;
-        if ($('#edit-fornecedor').find("option[value='" + fornAtual + "']").length) {
-            $('#edit-fornecedor').val(fornAtual).trigger('change');
-        } else {
-            // Cria opção nova se não existir na lista
-            var newOption = new Option(fornAtual, fornAtual, true, true);
-            $('#edit-fornecedor').append(newOption).trigger('change');
+                document.getElementById('edit-id').value = currentProduto.id;
+                document.getElementById('edit-sku').value = currentProduto.sku;
+                document.getElementById('edit-nome').value = currentProduto.nome;
+                document.getElementById('edit-origem').value = currentProduto.origem;
+
+                var fornAtual = currentProduto.fornecedor;
+                // Tratamento seguro para Select2
+                if (fornAtual && $('#edit-fornecedor').find("option[value='" + fornAtual + "']").length) { 
+                    $('#edit-fornecedor').val(fornAtual).trigger('change'); 
+                } else if (fornAtual) { 
+                    var newOption = new Option(fornAtual, fornAtual, true, true); 
+                    $('#edit-fornecedor').append(newOption).trigger('change'); 
+                } else {
+                    $('#edit-fornecedor').val(null).trigger('change');
+                }
+
+                document.getElementById('edit-peso').value = currentProduto.peso;
+                document.getElementById('edit-altura').value = currentProduto.altura;
+                document.getElementById('edit-largura').value = currentProduto.largura;
+                document.getElementById('edit-comprimento').value = currentProduto.comprimento;
+                document.getElementById('edit-qtd-master').value = currentProduto.qtd_cx_master;
+                document.getElementById('edit-altura-master').value = currentProduto.altura_master;
+                document.getElementById('edit-largura-master').value = currentProduto.largura_master;
+                document.getElementById('edit-comprimento-master').value = currentProduto.comprimento_master;
+            }, 300); // 300ms de espera
+        } catch(e) {
+            console.error("Erro ao habilitar edição:", e);
+            alert("Ocorreu um erro ao tentar abrir a edição. Verifique o console.");
         }
-
-        // Medidas
-        document.getElementById('edit-peso').value = currentProduto.peso;
-        document.getElementById('edit-altura').value = currentProduto.altura;
-        document.getElementById('edit-largura').value = currentProduto.largura;
-        document.getElementById('edit-comprimento').value = currentProduto.comprimento;
-        document.getElementById('edit-qtd-master').value = currentProduto.qtd_cx_master;
-        document.getElementById('edit-altura-master').value = currentProduto.altura_master;
-        document.getElementById('edit-largura-master').value = currentProduto.largura_master;
-        document.getElementById('edit-comprimento-master').value = currentProduto.comprimento_master;
     }
 
-    // --- 5. SALVAR EDIÇÃO ---
-    document.getElementById('formEditarProduto').addEventListener('submit', function(e) {
-        e.preventDefault(); 
-        const btn = document.getElementById('btnSalvarEdicao');
-        const spinner = btn.querySelector('.spinner-border');
-        const formData = new FormData(this);
-
-        btn.disabled = true; spinner.classList.remove('d-none');
-
-        fetch("{{ url_for('produtos.editar') }}", { method: 'POST', body: formData })
-        .then(response => response.json())
-        .then(data => {
-            btn.disabled = false; spinner.classList.add('d-none');
-            if(data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
-                showToast(data.message, 'success');
-                const id = document.getElementById('edit-id').value;
-                document.getElementById(`row-name-${id}`).innerText = document.getElementById('edit-nome').value;
-                document.getElementById(`row-sku-${id}`).innerText = document.getElementById('edit-sku').value;
-            } else {
-                alert('Erro: ' + data.message);
-            }
-        }).catch(() => {
-            btn.disabled = false; spinner.classList.add('d-none');
-            alert('Erro de conexão.');
+    // Salvar Edição
+    if(document.getElementById('formEditarProduto')) {
+        document.getElementById('formEditarProduto').addEventListener('submit', function(e) {
+            e.preventDefault(); const btn = document.getElementById('btnSalvarEdicao'); const spinner = btn.querySelector('.spinner-border'); const formData = new FormData(this);
+            btn.disabled = true; spinner.classList.remove('d-none');
+            fetch("{{ url_for('produtos.editar') }}", { method: 'POST', body: formData }).then(response => response.json()).then(data => {
+                btn.disabled = false; spinner.classList.add('d-none');
+                if(data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide(); showToast(data.message, 'success');
+                    const id = document.getElementById('edit-id').value;
+                    const rowName = document.getElementById(`row-name-${id}`);
+                    const rowSku = document.getElementById(`row-sku-${id}`);
+                    if(rowName) rowName.innerText = document.getElementById('edit-nome').value;
+                    if(rowSku) rowSku.innerText = document.getElementById('edit-sku').value;
+                } else { alert('Erro: ' + data.message); }
+            }).catch(() => { btn.disabled = false; spinner.classList.add('d-none'); alert('Erro de conexão.'); });
         });
-    });
+    }
 
-    // --- 6. EXCLUIR PRODUTO ---
     window.excluirProduto = function(id, nome) {
         if(!confirm(`Excluir "${nome}"?\nIsso apagará o produto e todo o histórico.`)) return;
-        
         let formData = new FormData(); formData.append('id', id);
-        
-        fetch("{{ url_for('produtos.excluir') }}", { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                document.getElementById(`row-${id}`).remove();
-                showToast(data.message, 'success');
-            } else {
-                alert(data.message);
-            }
+        fetch("{{ url_for('produtos.excluir') }}", { method: 'POST', body: formData }).then(res => res.json()).then(data => {
+            if(data.success) { 
+                const el = document.getElementById(`row-${id}`);
+                if(el) el.remove(); 
+                showToast(data.message, 'success'); 
+            } else { alert(data.message); }
         });
     }
 
-    // --- 7. HISTÓRICO ---
+    // Histórico (Atualizado com cores neutras)
     window.abrirHistorico = function(id, nomeProduto) {
         $('#modalTitulo').text(nomeProduto); 
         $('#corpoTabelaHistorico').empty(); 
@@ -544,14 +506,15 @@
                 if(item.importacao_propria) tags += `<span class="badge bg-info bg-opacity-10 text-info">Imp</span>`;
                 if(!tags) tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary">Simples</span>`;
 
+                // CORRIGIDO: text-adaptive
                 let row = `
                     <tr id="hist-row-${item.id}">
-                        <td class="ps-4 fw-bold text-muted" style="white-space:nowrap;">${item.data_compra}</td>
+                        <td class="ps-4 fw-bold text-adaptive" style="white-space:nowrap;">${item.data_compra}</td>
                         <td>
-                            <div class="fw-bold text-body text-truncate" style="max-width: 150px;">${item.fornecedor || '---'}</div>
+                            <div class="fw-bold text-adaptive text-truncate" style="max-width: 150px;">${item.fornecedor || '---'}</div>
                             <div class="small text-muted mt-1"><i class="fa-solid fa-file-invoice me-1"></i> ${item.nro_nf} ${tags}</div>
                         </td>
-                        <td class="text-center fw-bold text-primary">+${item.quantidade}</td>
+                        <td class="text-center fw-bold text-adaptive">+${item.quantidade}</td>
                         <td class="text-end text-muted">${fmt.format(item.preco_partida)}</td>
                         <td class="text-end text-muted">${fmt.format(item.frete)}</td>
                         <td class="small text-muted">
@@ -570,20 +533,14 @@
     window.excluirHistoricoItem = function(id) {
         if(!confirm("Apagar este registro do histórico?")) return;
         let formData = new FormData(); formData.append('id', id);
-        
-        fetch("/api/historico/excluir", { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
+        fetch("/api/historico/excluir", { method: 'POST', body: formData }).then(res => res.json()).then(data => {
             if(data.success) {
                 document.getElementById(`hist-row-${id}`).remove();
-                if(document.querySelectorAll('#corpoTabelaHistorico tr').length === 0) {
-                    $('#tabelaHistorico').hide(); $('#vazioHistorico').show();
-                }
+                if(document.querySelectorAll('#corpoTabelaHistorico tr').length === 0) { $('#tabelaHistorico').hide(); $('#vazioHistorico').show(); }
             } else alert(data.message);
         });
     }
 
-    // --- FUNÇÃO AUXILIAR TOAST ---
     function showToast(msg, type) {
         let toastEl = document.getElementById('liveToast');
         let toastBody = toastEl.querySelector('.toast-body');

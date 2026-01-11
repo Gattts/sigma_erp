@@ -1,577 +1,770 @@
-{% extends "base.html" %} {% block content %}
-<div class="container py-4">
-  <h3 class="fw-bold mb-4">
+ {% extends "base.html" %} {% block content %}
+
+
+<div class="container-fluid py-2">
+
+ 
+
+  <h4 class="fw-bold mb-3 ms-2">
+
     <i class="fa-solid fa-calculator me-2"></i> Calculadora de Precificação
-  </h3>
 
-  <div class="row">
+  </h4>
+
+
+  <div class="row g-3">
+
+   
+
     <div class="col-lg-5">
-      <div class="calc-card p-4 h-100">
-        <div class="d-flex justify-content-center mb-4">
-          <div class="btn-group w-100" role="group">
-            <input
-              type="radio"
-              class="btn-check"
-              name="btnradio"
-              id="mode-db"
-              autocomplete="off"
-              checked
-              onchange="toggleMode('db')"
-            />
-            <label class="btn btn-outline-primary fw-bold" for="mode-db"
-              >📦 Produto Existente</label
-            >
 
-            <input
-              type="radio"
-              class="btn-check"
-              name="btnradio"
-              id="mode-sim"
-              autocomplete="off"
-              onchange="toggleMode('sim')"
-            />
-            <label class="btn btn-outline-success fw-bold" for="mode-sim"
-              >🧪 Simular Novo</label
-            >
+      <div class="calc-card p-4 card-scroll">
+
+       
+
+        <div class="d-flex justify-content-center mb-4">
+
+          <div class="btn-group w-100" role="group">
+
+            <input type="radio" class="btn-check" name="btnradio" id="mode-db" autocomplete="off" checked onchange="toggleMode('db')"/>
+
+            <label class="btn btn-outline-primary fw-bold" for="mode-db">📦 Produto Existente</label>
+
+
+            <input type="radio" class="btn-check" name="btnradio" id="mode-sim" autocomplete="off" onchange="toggleMode('sim')"/>
+
+            <label class="btn btn-outline-success fw-bold" for="mode-sim">🧪 Simular Novo</label>
+
           </div>
+
         </div>
+
 
         <div id="container-db" class="mb-3">
+
           <label class="small fw-bold text-muted mb-1">Buscar Produto</label>
+
           <select id="selectProduto" class="form-select">
+
             <option value="">Digite SKU ou Nome...</option>
+
             {% for p in produtos %}
-            <option value="{{ p.id }}">{{ p.sku }} - {{ p.nome }}</option>
+
+            <option value="{{ p.id }}">
+
+              {{ p.sku }} - {{ p.nome }}
+
+            </option>
+
             {% endfor %}
+
           </select>
+
         </div>
 
-        <div
-          id="container-sim"
-          class="mb-3 p-3 bg-panel rounded border border-success border-opacity-25"
-          style="display: none"
-        >
-          <h6 class="text-success fw-bold small mb-3">
-            <i class="fa-solid fa-flask"></i> Dados da Compra (Simulação)
-          </h6>
+
+        <div id="container-sim" class="mb-3 p-3 bg-panel rounded border border-success border-opacity-25" style="display: none">
+
+          <h6 class="text-success fw-bold small mb-3"><i class="fa-solid fa-flask"></i> Dados da Compra (Simulação)</h6>
 
           <div class="d-flex justify-content-between mb-2">
+
             <div class="form-check form-switch">
-              <input
-                class="form-check-input sim-input"
-                type="checkbox"
-                id="sim-lucro-real"
-              />
-              <label class="form-check-label small" for="sim-lucro-real"
-                >Lucro Real?</label
-              >
+
+              <input class="form-check-input sim-input" type="checkbox" id="sim-lucro-real"/>
+
+              <label class="form-check-label small" for="sim-lucro-real">Lucro Real?</label>
+
             </div>
+
             <div class="form-check form-switch">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="sim-importacao"
-                onchange="atualizarTaxasSimulacao()"
-              />
-              <label
-                class="form-check-label small fw-bold text-primary"
-                for="sim-importacao"
-                >Importação?</label
-              >
+
+              <input class="form-check-input" type="checkbox" id="sim-importacao" onchange="atualizarTaxasSimulacao()"/>
+
+              <label class="form-check-label small fw-bold text-primary" for="sim-importacao">Importação?</label>
+
             </div>
+
           </div>
 
           <div class="row g-2">
-            <div class="col-6">
-              <label class="small text-muted">Preço Nota</label>
-              <input
-                type="number"
-                id="sim-preco"
-                class="form-control form-control-sm sim-input"
-                placeholder="0.00"
-              />
-            </div>
-            <div class="col-6">
-              <label class="small text-muted">Frete Rateio</label>
-              <input
-                type="number"
-                id="sim-frete"
-                class="form-control form-control-sm sim-input"
-                placeholder="0.00"
-              />
-            </div>
-            <div class="col-4">
-              <label class="small text-muted">IPI %</label>
-              <input
-                type="number"
-                id="sim-ipi"
-                class="form-control form-control-sm sim-input"
-                placeholder="0"
-              />
-            </div>
-            <div class="col-4">
-              <label class="small text-muted">ICMS %</label>
-              <input
-                type="number"
-                id="sim-icms"
-                class="form-control form-control-sm sim-input"
-                value="12"
-              />
-            </div>
 
-            <div class="col-2">
-              <label class="small text-muted" style="font-size: 0.7rem"
-                >PIS %</label
-              >
-              <input
-                type="number"
-                id="sim-pis"
-                class="form-control form-control-sm sim-input bg-light"
-                value="1.65"
-                readonly
-              />
-            </div>
-            <div class="col-2">
-              <label class="small text-muted" style="font-size: 0.7rem"
-                >COFINS</label
-              >
-              <input
-                type="number"
-                id="sim-cofins"
-                class="form-control form-control-sm sim-input bg-light"
-                value="7.60"
-                readonly
-              />
-            </div>
+            <div class="col-6"><label class="small text-muted">Preço Nota</label><input type="number" id="sim-preco" class="form-control form-control-sm sim-input" placeholder="0.00"/></div>
+
+            <div class="col-6"><label class="small text-muted">Frete Rateio</label><input type="number" id="sim-frete" class="form-control form-control-sm sim-input" placeholder="0.00"/></div>
+
+            <div class="col-4"><label class="small text-muted">IPI %</label><input type="number" id="sim-ipi" class="form-control form-control-sm sim-input" placeholder="0"/></div>
+
+            <div class="col-4"><label class="small text-muted">ICMS %</label><input type="number" id="sim-icms" class="form-control form-control-sm sim-input" value="12"/></div>
+
+            <div class="col-2"><label class="small text-muted" style="font-size: 0.7rem">PIS %</label><input type="number" id="sim-pis" class="form-control form-control-sm sim-input bg-light" value="1.65" readonly/></div>
+
+            <div class="col-2"><label class="small text-muted" style="font-size: 0.7rem">COFINS</label><input type="number" id="sim-cofins" class="form-control form-control-sm sim-input bg-light" value="7.60" readonly/></div>
+
           </div>
-          <div class="mt-2 text-end">
-            <small class="text-muted fst-italic"
-              >Custo calculado:
-              <span id="sim-custo-display" class="fw-bold text-success"
-                >R$ 0,00</span
-              ></small
-            >
-          </div>
+
+          <div class="mt-2 text-end"><small class="text-muted fst-italic">Custo calculado: <span id="sim-custo-display" class="fw-bold text-success">R$ 0,00</span></small></div>
+
         </div>
+
 
         <div class="row g-2 mb-3 pt-2 border-top">
+
           <div class="col-6">
-            <label class="small fw-bold text-muted">Custo Final (R$)</label>
-            <input
-              type="number"
-              id="custo"
-              class="form-control bg-readonly fw-bold"
-              readonly
-            />
+
+            <div class="d-flex justify-content-between align-items-center mb-1">
+
+                <label class="small fw-bold text-muted mb-0">Custo Final (R$)</label>
+
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 border-0" onclick="verHistorico()" id="btn-historico" title="Ver Histórico" style="font-size: 0.75rem;">
+
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Histórico
+
+                </button>
+
+            </div>
+
+            <input type="number" id="custo" class="form-control bg-readonly fw-bold" readonly/>
+
           </div>
+
           <div class="col-6">
-            <label class="small fw-bold text-muted">Peso (Kg)</label>
-            <input
-              type="number"
-              id="peso"
-              class="form-control bg-readonly"
-              readonly
-            />
+
+            <label class="small fw-bold text-muted mb-1">Peso (Kg)</label>
+
+            <input type="number" id="peso" class="form-control bg-readonly" readonly/>
+
           </div>
+
         </div>
+
 
         <h6 class="st-header mt-4">2. Configuração de Venda</h6>
 
         <div class="mb-3">
-          <label class="small fw-bold text-muted">Canal de Venda</label>
-          <select id="canal" class="form-select">
-            <option value="Mercado Livre">Mercado Livre</option>
-            <option value="Shopee">Shopee</option>
-            <option value="Site Próprio">Site Próprio</option>
+
+          <label class="small fw-bold text-muted">Regime Tributário</label>
+
+          <select id="regime" class="form-select" onchange="atualizarUIPorRegime()">
+
+            <option value="Lucro Real" selected>Lucro Real</option>
+
+            <option value="Simples Nacional">Simples Nacional</option>
+
+            <option value="TTD 478">TTD 478 (SC)</option>
+
+            <option value="CPF">Pessoa Física (CPF)</option>
+
           </select>
+
+        </div>
+
+        <div class="mb-3">
+
+          <label class="small fw-bold text-muted">Canal de Venda</label>
+
+          <select id="canal" class="form-select">
+
+            <option value="Mercado Livre">Mercado Livre</option>
+
+            <option value="Shopee">Shopee</option>
+
+            <option value="Site Próprio">Site Próprio</option>
+
+          </select>
+
         </div>
 
         <ul class="nav nav-tabs mb-3" id="modeTab" role="tablist">
-          <li class="nav-item">
-            <button
-              class="nav-link active"
-              id="tab-margem"
-              data-bs-toggle="tab"
-              data-mode="margem"
-              type="button"
-            >
-              Alvo: Margem
-            </button>
-          </li>
-          <li class="nav-item">
-            <button
-              class="nav-link"
-              id="tab-preco"
-              data-bs-toggle="tab"
-              data-mode="preco"
-              type="button"
-            >
-              Alvo: Preço
-            </button>
-          </li>
+
+          <li class="nav-item"><button class="nav-link active" id="tab-margem" data-bs-toggle="tab" data-mode="margem" type="button">Alvo: Margem</button></li>
+
+          <li class="nav-item"><button class="nav-link" id="tab-preco" data-bs-toggle="tab" data-mode="preco" type="button">Alvo: Preço</button></li>
+
         </ul>
 
         <div class="row g-2 mb-3">
+
           <div class="col-12" id="box-input-target">
-            <label class="small fw-bold text-primary" id="label-target"
-              >Margem Desejada (%)</label
-            >
-            <input
-              type="number"
-              id="input-target"
-              class="form-control border-primary fw-bold"
-              value="15.0"
-            />
+
+            <label class="small fw-bold text-primary" id="label-target">Margem Desejada (%)</label>
+
+            <input type="number" id="input-target" class="form-control border-primary fw-bold" value="15.0"/>
+
           </div>
 
-          <div class="col-4">
-            <label class="small text-muted">Comissão (%)</label>
-            <input
-              type="number"
-              id="comissao"
-              class="form-control"
-              value="16.5"
-            />
-          </div>
-          <div class="col-4">
-            <label class="small text-muted">ICMS Saída (%)</label>
-            <input type="number" id="icms" class="form-control" value="4.0" />
-          </div>
-          <div class="col-4">
-            <label class="small text-muted fw-bold text-danger"
-              >DIFAL (%)</label
-            >
-            <input
-              type="number"
-              id="difal"
-              class="form-control"
-              value="0"
-              placeholder="Ex: 6"
-            />
-          </div>
+          <div class="col-6"><label class="small text-muted">Comissão (%)</label><input type="number" id="comissao" class="form-control" value="16.5"/></div>
+
+          <div class="col-6"><label class="small text-muted text-warning fw-bold">Logística (%)</label><input type="number" id="logistica" class="form-control" value="0" placeholder="Ex: 5"/></div>
+
+          <div class="col-6"><label class="small text-muted" id="lbl-icms">ICMS Saída (%)</label><input type="number" id="icms" class="form-control" value="4.0"/></div>
+
+          <div class="col-6"><label class="small text-muted fw-bold text-danger">DIFAL (%)</label><input type="number" id="difal" class="form-control" value="0" placeholder="Ex: 6"/></div>
+
         </div>
 
-        <button
-          onclick="calcularVenda()"
-          class="btn btn-primary w-100 fw-bold py-2 mt-2"
-        >
-          <i class="fa-solid fa-bolt me-2"></i> CALCULAR PREÇO
-        </button>
+        <button onclick="calcularVenda()" class="btn btn-primary w-100 fw-bold py-2 mt-2 mb-3"><i class="fa-solid fa-bolt me-2"></i> CALCULAR PREÇO</button>
+
       </div>
+
     </div>
 
+
     <div class="col-lg-7">
-      <div
-        class="calc-card p-4 h-100 bg-white"
-        id="result-box"
-        style="opacity: 0.5; pointer-events: none"
-      >
+
+      <div class="calc-card p-4 bg-white card-scroll" id="result-box" style="opacity: 0.5; pointer-events: none">
+
         <div class="text-center mb-4 border-bottom pb-4">
-          <small
-            class="text-uppercase text-muted fw-bold ls-1"
-            id="lbl-resultado-titulo"
-            >Preço de Venda Sugerido</small
-          >
-          <div class="display-3 fw-bold mt-2" id="lbl-resultado-valor">
-            R$ 0,00
-          </div>
+
+          <small class="text-uppercase text-muted fw-bold ls-1" id="lbl-resultado-titulo">Preço de Venda Sugerido</small>
+
+          <div class="display-3 fw-bold mt-2" id="lbl-resultado-valor">R$ 0,00</div>
 
           <div class="d-flex justify-content-center gap-3 mt-3">
-            <div class="badge bg-success fs-6 px-3 py-2 shadow-sm">
-              Lucro Líquido: <span id="lbl-lucro">R$ 0,00</span>
-            </div>
-            <div class="badge bg-primary fs-6 px-3 py-2 shadow-sm">
-              Margem Real: <span id="lbl-margem-real">0%</span>
-            </div>
+
+            <div class="badge bg-success fs-6 px-3 py-2 shadow-sm">Lucro Líquido: <span id="lbl-lucro">R$ 0,00</span></div>
+
+            <div class="badge bg-primary fs-6 px-3 py-2 shadow-sm">Margem Real: <span id="lbl-margem-real">0%</span></div>
+
           </div>
+
         </div>
 
         <div class="row">
+
           <div class="col-md-7 border-end">
-            <h6 class="st-header text-danger mb-3">
-              <i class="fa-solid fa-list-ul me-2"></i> Detalhamento
-            </h6>
+
+            <h6 class="st-header text-danger mb-3"><i class="fa-solid fa-list-ul me-2"></i> Detalhamento</h6>
 
             <div class="mb-3">
-              <small
-                class="fw-bold text-muted text-uppercase"
-                style="font-size: 0.7rem"
-                >Impostos</small
-              >
-              <div class="result-row text-secondary">
-                <span>(-) ICMS:</span>
-                <span class="result-val" id="res-icms">R$ 0,00</span>
-              </div>
-              <div class="result-row text-secondary">
-                <span>(-) PIS (1.65%):</span>
-                <span class="result-val" id="res-pis">R$ 0,00</span>
-              </div>
-              <div class="result-row text-secondary">
-                <span>(-) COFINS (7.60%):</span>
-                <span class="result-val" id="res-cofins">R$ 0,00</span>
+
+              <small class="fw-bold text-muted text-uppercase" style="font-size: 0.7rem">Impostos</small>
+
+              <div class="result-row text-secondary"><span>(-) ICMS / Simples:</span><span class="result-val" id="res-icms">R$ 0,00</span></div>
+
+              <div id="box-pis-cofins">
+
+                  <div class="result-row text-secondary"><span>(-) PIS (1.65%):</span><span class="result-val" id="res-pis">R$ 0,00</span></div>
+
+                  <div class="result-row text-secondary"><span>(-) COFINS (7.60%):</span><span class="result-val" id="res-cofins">R$ 0,00</span></div>
+
               </div>
 
-              <div
-                class="result-row text-secondary"
-                id="row-difal"
-                style="display: none"
-              >
-                <span class="fw-bold text-danger">(-) DIFAL:</span>
-                <span class="result-val text-danger" id="res-difal"
-                  >R$ 0,00</span
-                >
-              </div>
+              <div class="result-row text-secondary" id="row-difal" style="display: none"><span class="fw-bold text-danger">(-) DIFAL:</span><span class="result-val text-danger" id="res-difal">R$ 0,00</span></div>
+
             </div>
 
             <div class="mb-3">
-              <small
-                class="fw-bold text-muted text-uppercase"
-                style="font-size: 0.7rem"
-                >Taxas</small
-              >
-              <div class="result-row text-danger fw-bold">
-                <span>(-) Comissão:</span>
-                <span class="result-val" id="res-comissao">R$ 0,00</span>
-              </div>
-              <div class="result-row text-danger">
-                <span>(-) Taxa Fixa:</span>
-                <span class="result-val" id="res-taxa">R$ 0,00</span>
-              </div>
-              <div class="result-row text-danger">
-                <span>(-) Frete / Envio:</span>
-                <span class="result-val" id="res-frete">R$ 0,00</span>
-              </div>
+
+              <small class="fw-bold text-muted text-uppercase" style="font-size: 0.7rem">Taxas & Logística</small>
+
+              <div class="result-row text-danger fw-bold"><span>(-) Comissão:</span><span class="result-val" id="res-comissao">R$ 0,00</span></div>
+
+              <div class="result-row text-warning fw-bold"><span>(-) Logística (%):</span><span class="result-val" id="res-logistica">R$ 0,00</span></div>
+
+              <div class="result-row text-danger"><span>(-) Taxa Fixa:</span><span class="result-val" id="res-taxa">R$ 0,00</span></div>
+
+              <div class="result-row text-danger"><span>(-) Frete / Envio:</span><span class="result-val" id="res-frete">R$ 0,00</span></div>
+
             </div>
 
-            <div
-              class="result-row text-dark fw-bold border-top pt-2 mt-2"
-              style="border-top: 2px solid #eee !important"
-            >
-              <span>(-) Custo do Produto:</span>
-              <span class="result-val" id="res-custo-prod">R$ 0,00</span>
-            </div>
+            <div class="result-row text-dark fw-bold border-top pt-2 mt-2" style="border-top: 2px solid #eee !important"><span>(-) Custo do Produto:</span><span class="result-val" id="res-custo-prod">R$ 0,00</span></div>
+
           </div>
 
-          <div
-            class="col-md-5 ps-md-4 d-flex flex-column justify-content-center"
-          >
-            <div
-              class="alert alert-secondary border-0 mb-3"
-              id="box-custo-total"
-            >
+          <div class="col-md-5 ps-md-4 d-flex flex-column justify-content-center">
+
+            <div class="alert alert-secondary border-0 mb-3" id="box-custo-total">
+
               <small class="d-block mb-1 opacity-75">Custo Total</small>
+
               <strong class="fs-5" id="res-custo-total">R$ 0,00</strong>
+
             </div>
+
             <div class="alert alert-success border-0 mb-0 shadow-sm">
-              <small class="d-block text-success mb-1 fw-bold"
-                >Receita Líquida</small
-              >
-              <strong class="fs-4 text-success" id="res-receita-liq"
-                >R$ 0,00</strong
-              >
+
+              <small class="d-block text-success mb-1 fw-bold">Receita Líquida</small>
+
+              <strong class="fs-4 text-success" id="res-receita-liq">R$ 0,00</strong>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
+
   </div>
+
 </div>
-{% endblock %} {% block scripts %}
+
+
+<div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
+
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+
+    <div class="modal-content border-0 shadow-lg">
+
+      <div class="modal-header bg-panel border-bottom">
+
+        <div>
+
+          <h5 class="modal-title fw-bold text-adaptive" id="modalTitulo">Histórico de Compras</h5>
+
+          <p class="text-muted small m-0 mb-1">Detalhamento completo de custos</p>
+
+        </div>
+
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+      </div>
+
+      <div class="modal-body p-0">
+
+        <div class="table-responsive">
+
+          <table class="table table-hover align-middle mb-0" id="tabelaHistorico" style="font-size: 0.9rem;">
+
+            <thead class="bg-light">
+
+              <tr>
+
+                <th class="ps-4 text-adaptive">Data</th>
+
+                <th class="text-adaptive">Fornecedor / Nota</th>
+
+                <th class="text-center text-adaptive">Qtd</th>
+
+                <th class="text-end text-adaptive">Preço NF</th>
+
+                <th class="text-end text-adaptive">Frete</th>
+
+                <th class="text-adaptive">Impostos (%)</th>
+
+                <th class="text-end pe-4 text-adaptive">Custo Final</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="corpoTabelaHistorico"></tbody>
+
+          </table>
+
+        </div>
+
+        <div id="loadingHistorico" class="text-center py-5">
+
+          <div class="spinner-border text-primary" role="status"></div>
+
+          <p class="text-muted small mt-2">Carregando dados...</p>
+
+        </div>
+
+        <div id="vazioHistorico" class="text-center py-5" style="display:none;">
+
+          <i class="fa-solid fa-ghost fs-1 text-muted opacity-25 mb-2"></i>
+
+          <p class="text-muted">Nenhum registro encontrado.</p>
+
+        </div>
+
+      </div>
+
+      <div class="modal-footer border-top bg-panel">
+
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+{% endblock %}
+
+
+{% block scripts %}
+
 <script>
+
   $(document).ready(function () {
-    $("#selectProduto").select2({
-      theme: "bootstrap-5",
-      placeholder: "Selecione um produto...",
-    });
+
+    $("#selectProduto").select2({ theme: "bootstrap-5", placeholder: "Selecione um produto..." });
+
+    let origemGlobal = "0";
+
     let currentMode = "db";
+
     let calcTarget = "margem";
 
-    window.atualizarTaxasCanal = function () {
-      let canal = $("#canal").val();
-      let comissaoInput = $("#comissao");
-      comissaoInput
-        .prop("readonly", false)
-        .removeClass("bg-secondary bg-opacity-10");
-      if (canal === "Shopee") {
-        comissaoInput.val(20.0);
-        comissaoInput
-          .prop("readonly", true)
-          .addClass("bg-secondary bg-opacity-10");
-      } else if (canal === "Mercado Livre") {
-        comissaoInput.val(16.5);
-      } else {
-        comissaoInput.val(0.0);
-      }
-    };
+
+    // --- FUNÇÃO HISTÓRICO PADRONIZADA ---
+
+    window.verHistorico = function() {
+
+        if(currentMode !== "db") {
+
+            alert("Disponível apenas para Produtos Existentes.");
+
+            return;
+
+        }
+
+        let produtoId = $("#selectProduto").val();
+
+        if(!produtoId) {
+
+            alert("Selecione um produto!");
+
+            return;
+
+        }
+
+
+        // Abre Modal
+
+        let modal = new bootstrap.Modal(document.getElementById('modalHistorico'));
+
+        modal.show();
+
+        $('#modalTitulo').text($("#selectProduto option:selected").text());
+
+        $("#corpoTabelaHistorico").empty();
+
+        $('#tabelaHistorico').hide(); $('#vazioHistorico').hide(); $('#loadingHistorico').show();
+
+
+        // CHAMA A API QUE JÁ FUNCIONA NA TELA DE PRODUTOS
+
+        fetch(`/api/historico/${produtoId}`)
+
+            .then(res => res.json())
+
+            .then(data => {
+
+                $("#loadingHistorico").hide();
+
+               
+
+                if(data.length === 0) {
+
+                    $("#vazioHistorico").show();
+
+                    return;
+
+                }
+
+
+                $("#tabelaHistorico").show();
+
+                const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+
+                data.forEach(item => {
+
+                    // BADGES IDÊNTICOS À TELA DE PRODUTOS
+
+                    let tags = '';
+
+                    if(item.lucro_real) tags += `<span class="badge bg-success bg-opacity-10 text-success me-1 border border-success border-opacity-25">Real</span>`;
+
+                    if(item.importacao_propria) tags += `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Imp</span>`;
+
+                    if(!tags) tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">Simples</span>`;
+
+
+                    // Linha da Tabela (Com text-adaptive para corrigir a cor azul)
+
+                    let row = `
+
+                        <tr>
+
+                            <td class="ps-4 fw-bold text-muted text-nowrap">${item.data_compra}</td>
+
+                            <td>
+
+                                <div class="fw-bold text-adaptive text-truncate" style="max-width: 200px;">${item.fornecedor || '---'}</div>
+
+                                <div class="small text-muted mt-1"><i class="fa-solid fa-file-invoice me-1"></i> ${item.nro_nf} ${tags}</div>
+
+                            </td>
+
+                            <td class="text-center fw-bold text-adaptive">+${item.quantidade}</td>
+
+                            <td class="text-end text-muted">${fmt.format(item.preco_partida)}</td>
+
+                            <td class="text-end text-muted">${fmt.format(item.frete)}</td>
+
+                            <td class="small text-muted">
+
+                                ICMS: ${item.icms}% <br> PIS/COFINS: ${item.pis}%/${item.cofins}%
+
+                            </td>
+
+                            <td class="text-end fw-bold text-success pe-4">${fmt.format(item.custo_final)}</td>
+
+                        </tr>
+
+                    `;
+
+                    $("#corpoTabelaHistorico").append(row);
+
+                });
+
+            })
+
+            .catch(err => {
+
+                $("#loadingHistorico").hide();
+
+                alert("Erro ao buscar histórico.");
+
+                console.error(err);
+
+            });
+
+    }
+
+
+    // --- RESTANTE DOS EVENTOS (IGUAIS) ---
+
+    $('#selectProduto').on('select2:select', function (e) {
+
+        let id = $(this).val();
+
+        fetch(`/api/produto/${id}`).then(res => res.json()).then(data => {
+
+            $("#custo").val(data.custo.toFixed(4));
+
+            $("#peso").val(data.peso);
+
+            origemGlobal = String(data.origem || "0");
+
+            atualizarUIPorRegime();
+
+            calcularVenda();
+
+        });
+
+    });
+
+
+    window.atualizarUIPorRegime = function() {
+
+        let regime = $("#regime").val();
+
+        let icmsInput = $("#icms");
+
+        let difalInput = $("#difal");
+
+        let lblIcms = $("#lbl-icms");
+
+        icmsInput.prop('disabled', false); difalInput.prop('disabled', false);
+
+
+        if (regime === 'CPF') {
+
+            icmsInput.val(0).prop('disabled', true); difalInput.val(0).prop('disabled', true); lblIcms.text("ICMS (Isento)");
+
+        } else if (regime === 'Simples Nacional') {
+
+            lblIcms.text("Alíquota Simples (%)"); difalInput.prop('disabled', true).val(0);
+
+        } else if (regime === 'TTD 478') {
+
+            lblIcms.text("ICMS (Travado TTD)"); icmsInput.prop('disabled', true);
+
+            let origem = (currentMode === "db") ? origemGlobal : ($("#sim-importacao").is(":checked") ? "1" : "0");
+
+            let cod = origem.trim().charAt(0);
+
+            if (['1','2','3','5','8'].includes(cod)) icmsInput.val(1.0); else icmsInput.val(2.0);
+
+        } else {
+
+            lblIcms.text("ICMS Saída (%)");
+
+            if([0,1,2].includes(parseFloat(icmsInput.val()))) icmsInput.val(4.0);
+
+        }
+
+    }
+
+
+    $("#regime").on("change", function() { atualizarUIPorRegime(); calcularVenda(); });
 
     $("#canal").on("change", window.atualizarTaxasCanal);
 
-    window.toggleMode = function (mode) {
-      currentMode = mode;
-      if (mode === "db") {
-        $("#container-db").show();
-        $("#container-sim").hide();
-        $("#custo").addClass("bg-readonly").prop("readonly", true).val("");
-        $("#peso").addClass("bg-readonly").prop("readonly", true).val("");
-      } else {
-        $("#container-db").hide();
-        $("#container-sim").show();
-        $("#peso").removeClass("bg-readonly").prop("readonly", false).val(0.5);
-        $("#custo").val(0);
-        recalcularCustoSimulado();
-      }
+   
+
+    window.atualizarTaxasCanal = function () {
+
+        let canal = $("#canal").val();
+
+        let input = $("#comissao");
+
+        input.prop("readonly", false).removeClass("bg-secondary bg-opacity-10");
+
+        if (canal === "Shopee") input.val(20.0).prop("readonly", true).addClass("bg-secondary bg-opacity-10");
+
+        else if (canal === "Mercado Livre") input.val(16.5);
+
+        else input.val(0.0);
+
     };
+
+
+    window.toggleMode = function (mode) {
+
+        currentMode = mode;
+
+        if (mode === "db") {
+
+            $("#container-db").show(); $("#container-sim").hide(); $("#btn-historico").show();
+
+            $("#custo").addClass("bg-readonly").prop("readonly", true);
+
+            $("#peso").addClass("bg-readonly").prop("readonly", true);
+
+        } else {
+
+            $("#container-db").hide(); $("#container-sim").show(); $("#btn-historico").hide();
+
+            $("#peso").removeClass("bg-readonly").prop("readonly", false);
+
+            $("#custo").val(0);
+
+        }
+
+        atualizarUIPorRegime();
+
+    };
+
 
     window.atualizarTaxasSimulacao = function () {
-      let isImport = $("#sim-importacao").is(":checked");
-      if (isImport) {
-        $("#sim-pis").val(2.1);
-        $("#sim-cofins").val(9.65);
-      } else {
-        $("#sim-pis").val(1.65);
-        $("#sim-cofins").val(7.6);
-      }
-      recalcularCustoSimulado();
+
+        let isImport = $("#sim-importacao").is(":checked");
+
+        if (isImport) { $("#sim-pis").val(2.1); $("#sim-cofins").val(9.65); }
+
+        else { $("#sim-pis").val(1.65); $("#sim-cofins").val(7.6); }
+
+        atualizarUIPorRegime();
+
     };
 
-    function recalcularCustoSimulado() {
-      if (currentMode !== "sim") return;
-      let payload = {
-        preco_nota: parseFloat($("#sim-preco").val()) || 0,
-        frete: parseFloat($("#sim-frete").val()) || 0,
-        ipi: parseFloat($("#sim-ipi").val()) || 0,
-        icms: parseFloat($("#sim-icms").val()) || 0,
-        pis: parseFloat($("#sim-pis").val()) || 0,
-        cofins: parseFloat($("#sim-cofins").val()) || 0,
-        lucro_real: $("#sim-lucro-real").is(":checked"),
-      };
-      fetch("/api/simular_custo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          $("#custo").val(data.custo_final.toFixed(4));
-          $("#sim-custo-display").text("R$ " + data.custo_final.toFixed(2));
-        });
-    }
-    $(".sim-input").on("input change", recalcularCustoSimulado);
+   
 
-    $("#selectProduto").on("select2:select", function (e) {
-      if (currentMode !== "db") return;
-      let id = $(this).val();
-      fetch(`/api/produto/${id}`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.error) {
-            alert("Erro");
-            return;
-          }
-          $("#custo").val(data.custo.toFixed(4));
-          $("#peso").val(data.peso);
-          calcularVenda();
-        });
+    $(".sim-input").on("input change", function() {
+
+       // Simulação local
+
     });
+
 
     $(".nav-link").click(function () {
-      $(".nav-link").removeClass("active");
-      $(this).addClass("active");
-      calcTarget = $(this).data("mode");
 
-      if (calcTarget === "margem") {
-        $("#label-target").text("Margem Desejada (%)");
-        $("#input-target").attr("placeholder", "Ex: 15.0");
-        $("#lbl-resultado-titulo").text("Preço de Venda Sugerido");
-      } else {
-        $("#label-target").text("Preço de Venda Manual (R$)");
-        $("#input-target").attr("placeholder", "Ex: 159.90");
-        $("#lbl-resultado-titulo").text("Margem Resultante");
-      }
+        $(".nav-link").removeClass("active"); $(this).addClass("active");
+
+        calcTarget = $(this).data("mode");
+
+        if (calcTarget === "margem") { $("#label-target").text("Margem Desejada (%)"); $("#lbl-resultado-titulo").text("Preço de Venda Sugerido"); }
+
+        else { $("#label-target").text("Preço de Venda Manual (R$)"); $("#lbl-resultado-titulo").text("Margem Resultante"); }
+
     });
 
+
     window.calcularVenda = function () {
-      let custo = parseFloat($("#custo").val());
-      if (isNaN(custo) || custo <= 0) {
-        if (currentMode === "sim")
-          alert("Preencha os dados da compra para gerar um custo!");
-        else alert("Selecione um produto!");
-        return;
-      }
 
-      let payload = {
-        custo: custo,
-        peso: $("#peso").val(),
-        canal: $("#canal").val(),
-        comissao: $("#comissao").val(),
-        icms: $("#icms").val(),
-        difal: $("#difal").val(),
-        modo: calcTarget,
-      };
+        let custo = parseFloat($("#custo").val());
 
-      if (calcTarget === "margem") payload.margem = $("#input-target").val();
-      else payload.preco_manual = $("#input-target").val();
+        if (isNaN(custo) || custo <= 0) {
 
-      $("#result-box").css({ opacity: "1", "pointer-events": "all" });
+            if(currentMode === "sim") alert("Preencha o custo!"); else alert("Selecione um produto!");
 
-      fetch("/api/calcular", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          const fmt = new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
+            return;
 
-          if (calcTarget === "margem") {
-            $("#lbl-resultado-valor").text(fmt.format(data.preco));
-          } else {
-            $("#lbl-resultado-valor").text(data.margem.toFixed(2) + "%");
-            $("#lbl-resultado-titulo").text("Margem de Lucro Real");
-          }
-          $("#lbl-lucro").text(fmt.format(data.lucro));
-          $("#lbl-margem-real").text(data.margem.toFixed(2) + "%");
+        }
 
-          $("#res-icms").text(fmt.format(data.val_icms));
-          $("#res-pis").text(fmt.format(data.val_pis));
-          $("#res-cofins").text(fmt.format(data.val_cofins));
+        let origem = (currentMode === "db") ? origemGlobal : ($("#sim-importacao").is(":checked") ? "1" : "0");
 
-          if (data.val_difal > 0) {
-            $("#row-difal").show();
-            $("#res-difal").text(fmt.format(data.val_difal));
-          } else {
-            $("#row-difal").hide();
-          }
+        let payload = {
 
-          $("#res-comissao").text(fmt.format(data.val_comissao));
-          $("#res-frete").text(fmt.format(data.frete));
-          $("#res-taxa").text(fmt.format(data.taxa_fixa));
-          $("#res-custo-prod").text(fmt.format(data.custo));
+            custo: custo, peso: $("#peso").val(), canal: $("#canal").val(),
 
-          let totalImpostos = data.val_imposto_total;
-          let totalTaxas = data.val_comissao + data.frete + data.taxa_fixa;
-          let custoTotal = totalImpostos + totalTaxas + data.custo;
-          let receitaLiq = data.preco - totalImpostos - totalTaxas;
+            comissao: $("#comissao").val(), icms: $("#icms").val(), difal: $("#difal").val(),
 
-          $("#res-custo-total").text(fmt.format(custoTotal));
-          $("#res-receita-liq").text(fmt.format(receitaLiq));
-        })
-        .catch((err) => console.error(err));
+            modo: calcTarget, regime: $("#regime").val(), logistica_pct: $("#logistica").val(),
+
+            origem_produto: origem
+
+        };
+
+        if (calcTarget === "margem") payload.margem = $("#input-target").val();
+
+        else payload.preco_manual = $("#input-target").val();
+
+
+        $("#result-box").css({ opacity: "1", "pointer-events": "all" });
+
+
+        fetch("/api/calcular", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+
+        .then(res => res.json()).then(data => {
+
+            const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+            if (calcTarget === "margem") $("#lbl-resultado-valor").text(fmt.format(data.preco));
+
+            else $("#lbl-resultado-valor").text(data.margem.toFixed(2) + "%");
+
+           
+
+            $("#lbl-lucro").text(fmt.format(data.lucro));
+
+            $("#lbl-margem-real").text(data.margem.toFixed(2) + "%");
+
+            $("#res-icms").text(fmt.format(data.val_icms));
+
+           
+
+            if($("#regime").val() === 'CPF' || $("#regime").val() === 'Simples Nacional') $("#box-pis-cofins").hide();
+
+            else { $("#box-pis-cofins").show(); $("#res-pis").text(fmt.format(data.val_pis)); $("#res-cofins").text(fmt.format(data.val_cofins)); }
+
+
+            if (data.val_difal > 0) { $("#row-difal").show(); $("#res-difal").text(fmt.format(data.val_difal)); } else $("#row-difal").hide();
+
+
+            $("#res-comissao").text(fmt.format(data.val_comissao));
+
+            $("#res-logistica").text(fmt.format(data.val_logistica));
+
+            $("#res-frete").text(fmt.format(data.frete));
+
+            $("#res-taxa").text(fmt.format(data.taxa_fixa));
+
+            $("#res-custo-prod").text(fmt.format(data.custo));
+
+            $("#res-custo-total").text(fmt.format(data.custo + data.val_imposto_total + data.val_comissao + data.frete + data.taxa_fixa + data.val_logistica));
+
+            $("#res-receita-liq").text(fmt.format(data.preco - (data.val_imposto_total + data.val_comissao + data.frete + data.taxa_fixa + data.val_logistica)));
+
+        }).catch((err) => console.error(err));
+
     };
+
   });
+
 </script>
 
-<style>
-  [data-theme="dark"] .alert-secondary {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-  }
-  [data-theme="dark"] .alert-secondary small {
-    color: #adb5bd !important;
-  }
-</style>
-{% endblock %}
+{% endblock %} 
