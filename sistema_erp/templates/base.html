@@ -28,8 +28,9 @@
 
         <div class="sidebar-nav">
             <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}" title="Dashboard">
-                <i class="fa-solid fa-house"></i> <span>Dashboard</span>
+                <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
             </a>
+            
             <a href="{{ url_for('produtos.index') }}" class="{{ 'active' if 'produtos' in request.endpoint }}" title="Produtos">
                 <i class="fa-solid fa-box"></i> <span>Produtos</span>
             </a>
