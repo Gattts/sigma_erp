@@ -303,6 +303,7 @@
             <div class="display-5 fw-bold text-primary my-2" id="lblFinal">
               R$ 0,00
             </div>
+
             <input
               type="hidden"
               name="custo_final_calculado"
@@ -349,7 +350,6 @@
 {% endblock %} {% block scripts %}
 <script>
   $(document).ready(function () {
-    // Bloqueia Enter
     $("#formEntrada").on("keydown", function (event) {
       if (event.key === "Enter" && !$(event.target).is("button, textarea")) {
         event.preventDefault();
@@ -357,7 +357,6 @@
       }
     });
 
-    // 1. Select2 Produto
     $("#selectProduto").select2({
       theme: "bootstrap-5",
       width: "100%",
@@ -384,7 +383,6 @@
         .trigger("change");
     });
 
-    // 2. Select2 Fornecedor
     $("#selectFornecedor").select2({
       theme: "bootstrap-5",
       width: "100%",
@@ -415,7 +413,15 @@
       }
     });
 
-    // --- NOVA LÓGICA DE CÁLCULO JS (Espelho do Python) ---
+    // --- FUNÇÃO AUXILIAR PARA CORRIGIR ERRO DE VÍRGULA/PONTO ---
+    function parseLocalNum(val) {
+      if (!val) return 0.0;
+      // Se for string, substitui vírgula por ponto antes de converter
+      if (typeof val === "string") {
+        val = val.replace(",", ".");
+      }
+      return parseFloat(val) || 0.0;
+    }
 
     window.alterarTaxasImportacao = function () {
       let isImport = $("#checkImp").is(":checked");
@@ -429,20 +435,21 @@
       calcularCusto();
     };
 
+    // --- CÁLCULO AJUSTADO ---
     window.calcularCusto = function () {
-      // 1. Pega valores
-      let preco = parseFloat($("#preco").val()) || 0;
-      let frete = parseFloat($("#frete").val()) || 0;
-      let ipiPerc = parseFloat($("#ipi").val()) || 0;
-      let icmsPerc = parseFloat($("#icms").val()) || 0;
-      let pisPerc = parseFloat($("#pis").val()) || 0;
-      let cofinsPerc = parseFloat($("#cofins").val()) || 0;
+      // 1. Pega valores usando a função segura parseLocalNum
+      let preco = parseLocalNum($("#preco").val());
+      let frete = parseLocalNum($("#frete").val());
+      let ipiPerc = parseLocalNum($("#ipi").val());
+      let icmsPerc = parseLocalNum($("#icms").val());
+      let pisPerc = parseLocalNum($("#pis").val());
+      let cofinsPerc = parseLocalNum($("#cofins").val());
       let isLucroReal = $("#checkLucroReal").is(":checked");
 
       // 2. Calcula Valores Monetários
       let valIpi = preco * (ipiPerc / 100);
 
-      // Preço Médio (Passo 1): Produto + Frete + IPI
+      // PASSO 1: Preço Médio = NF + Frete + IPI
       let precoMedio = preco + frete + valIpi;
 
       // 3. Calcula Créditos
@@ -455,28 +462,25 @@
       if (isLucroReal) {
         let valIcms = preco * (icmsPerc / 100);
 
-        // Base de PIS/COFINS = (Produto + Frete) - ICMS
+        // Base de PIS/COFINS = (Produto + Frete) - Valor ICMS
         let basePisCofins = preco + frete - valIcms;
         if (basePisCofins < 0) basePisCofins = 0;
 
         let valPis = basePisCofins * (pisPerc / 100);
         let valCofins = basePisCofins * (cofinsPerc / 100);
 
-        // Soma TUDO nos créditos (IPI também)
-        totalCreditos = valIcms + valPis + valCofins + valIpi;
+        // Soma TUDO nos créditos (IPI, ICMS, PIS, COFINS)
+        totalCreditos = valIpi + valIcms + valPis + valCofins;
 
-        // Atualiza Labels
         $("#indIPI").text(fmt.format(valIpi));
         $("#indICMS").text(fmt.format(valIcms));
         $("#indPIS").text(fmt.format(valPis));
         $("#indCOFINS").text(fmt.format(valCofins));
       } else {
-        // Simples Nacional não recupera crédito
-        totalCreditos = 0;
         $("#indIPI, #indICMS, #indPIS, #indCOFINS").text("--");
       }
 
-      // Passo 2: Custo Final
+      // PASSO 2: Custo Final = Preço Médio - Créditos
       let custoFinal = precoMedio - totalCreditos;
 
       // Atualiza Tela
@@ -486,17 +490,20 @@
       );
       $("#lblFinal").text(fmt.format(custoFinal));
 
-      // Input Hidden para envio
+      // GARANTIA DE ENVIO DO VALOR CORRETO
       $("#inputCustoFinal").val(custoFinal.toFixed(4));
     };
 
-    // Listeners
     $(".calc-input").on("input", calcularCusto);
     calcularCusto();
 
     // Submit do Formulário
     $("#formEntrada").on("submit", function (e) {
       e.preventDefault();
+
+      // Força recálculo
+      calcularCusto();
+
       let btn = $("#btnConfirmar");
       let spinner = btn.find(".spinner-border");
       let form = this;

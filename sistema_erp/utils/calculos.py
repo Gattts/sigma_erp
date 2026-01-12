@@ -33,65 +33,68 @@ def obter_frete_ml_tabela(preco, peso):
         if peso <= limite: return valor
     return lista[-1][1]
 
-# --- ATUALIZAÇÃO DA LÓGICA DE CUSTO ---
+# --- LÓGICA DE COMPRA CORRIGIDA (Sincronizada com JS) ---
 def calcular_custo_aquisicao(pc, frete, ipi, outros, st_val, icms_frete, icms_prod, l_real, pis=0, cofins=0):
-    # 1. Conversão de valores
+    # 1. Conversão
     v_pc = str_to_float(pc)
     v_frete = str_to_float(frete)
     v_ipi_pct = str_to_float(ipi)
     v_outros = str_to_float(outros)
     v_st = str_to_float(st_val)
     
-    # Percentuais
+    v_icms_frete_pct = str_to_float(icms_frete)
     v_icms_prod_pct = str_to_float(icms_prod)
     v_pis_pct = str_to_float(pis)
     v_cofins_pct = str_to_float(cofins)
 
-    # 2. Valores Monetários
+    # 2. Valores Absolutos
     valor_ipi = v_pc * (v_ipi_pct / 100)
     
-    # Passo 1: Preço Médio (Total da Nota / Desembolso)
-    # Nota: O Excel considera Produto + Frete + IPI (Outros/ST entram se existirem)
+    # Passo 1: Preço Médio (Total da Nota)
+    # Inclui NF + Frete + IPI + Outros
     preco_medio = v_pc + v_frete + valor_ipi + v_outros + v_st
 
-    # 3. Cálculo dos Créditos (Lucro Real)
+    credito_icms = 0.0
+    credito_pis_cofins = 0.0
     total_creditos = 0.0
-    val_icms_prod = 0.0
-    val_pis = 0.0
-    val_cofins = 0.0
+    custo_final = 0.0
 
+    # Passo 2: Definição por Regime
     if l_real:
         # A. Crédito de ICMS
-        val_icms_prod = v_pc * (v_icms_prod_pct / 100)
+        c_frete = v_frete * (v_icms_frete_pct / 100)
+        c_prod = v_pc * (v_icms_prod_pct / 100)
+        credito_icms = c_frete + c_prod
         
-        # B. Crédito de PIS/COFINS (Base = (Produto + Frete) - ICMS)
-        # Regra da "Tese do Século" aplicada no Excel enviado
-        base_pis_cofins = (v_pc + v_frete) - val_icms_prod
+        # B. Crédito PIS/COFINS 
+        # Base de cálculo = (Produto + Frete) - ICMS (Espelhando a lógica do JS)
+        base_pis_cofins = (v_pc + v_frete) - c_prod
         if base_pis_cofins < 0: base_pis_cofins = 0
         
         val_pis = base_pis_cofins * (v_pis_pct / 100)
         val_cofins = base_pis_cofins * (v_cofins_pct / 100)
+        credito_pis_cofins = val_pis + val_cofins
 
-        # C. Soma dos Créditos (ICMS + PIS + COFINS + IPI)
-        total_creditos = val_icms_prod + val_pis + val_cofins + valor_ipi
+        # C. TOTAL CRÉDITOS (AQUI ESTÁ A CORREÇÃO: + valor_ipi)
+        # Ao somar o valor_ipi aqui, ele será abatido do custo final
+        total_creditos = credito_icms + credito_pis_cofins + valor_ipi
         
-        # Passo 2: Custo Final = Preço Médio - Créditos
+        # Custo Final
         custo_final = preco_medio - total_creditos
     else:
-        # Se não for Lucro Real, o custo é o desembolso total
-        custo_final = preco_medio
+        # Simples Nacional: Custo é o preço cheio (Preço Médio)
         total_creditos = 0.0
+        custo_final = preco_medio
 
     return {
-        'custo_final': round(custo_final, 4),
-        'creditos': round(total_creditos, 2),
-        'icms_rec': round(val_icms_prod, 2),
-        'pis_cof_rec': round(val_pis + val_cofins, 2), # Soma para exibir no resumo
-        'val_pis': round(val_pis, 2),
-        'val_cofins': round(val_cofins, 2),
+        'custo_final': round(custo_final, 4), 
+        'creditos': round(total_creditos, 2), 
+        'icms_rec': round(credito_icms, 2), 
+        'pis_cof_rec': round(credito_pis_cofins, 2),
         'valor_ipi': round(valor_ipi, 2),
         'preco_medio': round(preco_medio, 2)
     }
+
 def calcular_cenario(margem_alvo, preco_manual, comissao, modo, canal, custo_base, impostos, peso, is_full, armaz=0):
     v_margem = str_to_float(margem_alvo)
     v_preco_man = str_to_float(preco_manual)
