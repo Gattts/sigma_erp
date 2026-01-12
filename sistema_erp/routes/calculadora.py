@@ -11,8 +11,7 @@ def index():
     produtos = run_query("SELECT id, sku, nome, origem FROM produtos ORDER BY nome")
     lista_produtos = produtos.to_dict('records') if not produtos.empty else []
 
-    # 2. Busca histórico de preços salvos (Para a Nova Aba)
-    # Traz os últimos 50 cálculos salvos
+    # 2. Busca histórico de preços salvos
     sql_hist = """
         SELECT 
             ps.id,
@@ -33,14 +32,12 @@ def index():
     try:
         hist_df = run_query(sql_hist)
         
-        # Formata datas para exibir bonito (dd/mm/aaaa HH:MM)
         def fmt_data(d):
             try: return d.strftime('%d/%m/%Y %H:%M')
             except: return str(d)
         
         if not hist_df.empty:
             hist_df['data_registro'] = hist_df['data_registro'].apply(fmt_data)
-            # Garante que 'queima' seja booleano
             hist_df['queima'] = hist_df['queima'].apply(lambda x: bool(x) if x else False)
             lista_historico = hist_df.to_dict('records')
         else:
@@ -75,10 +72,14 @@ def get_produto_info(prod_id):
     })
 
 
-# --- API 2: Simula Custo ---
+# --- API 2: Simula Custo (Aba "Simular Novo") ---
 @calculadora_bp.route('/api/simular_custo', methods=['POST'])
 def simular_custo_api():
     data = request.json
+    
+    # Define se é Lucro Real (Booleano) para a nova função de cálculo
+    is_lucro_real = (data.get('regime') == 'Lucro Real')
+
     resultado = calcular_custo_aquisicao(
         pc=data.get('preco_nota', 0),
         frete=data.get('frete', 0),
@@ -87,7 +88,7 @@ def simular_custo_api():
         icms_prod=data.get('icms', 0),
         pis=data.get('pis', 0),
         cofins=data.get('cofins', 0),
-        regime=data.get('regime', 'Lucro Real')
+        l_real=is_lucro_real  # <--- CORREÇÃO: Passa booleano, não string
     )
     return jsonify(resultado)
 
@@ -98,9 +99,10 @@ def calcular_ajax():
     data = request.json
     impostos = {
         'icms': data.get('icms', 0),
-        'difal': data.get('difal', 0),
-        'simples_aliquota': data.get('icms', 0)
+        'difal': data.get('difal', 0)
     }
+    
+    # Chama a função calcular_cenario com os argumentos corretos do novo calculos.py
     resultado = calcular_cenario(
         margem_alvo=data.get('margem', 0),
         preco_manual=data.get('preco_manual', 0),
@@ -111,19 +113,16 @@ def calcular_ajax():
         impostos=impostos,
         peso=data.get('peso', 0),
         is_full=False,
-        regime=data.get('regime', 'Lucro Real'),
-        logistica_pct=data.get('logistica_pct', 0),
-        origem_produto=data.get('origem_produto', '0')
+        armaz=data.get('logistica_pct', 0) # <--- CORREÇÃO: Mapeia logistica para armaz
     )
     return jsonify(resultado)
 
 
-# --- API 4: SALVAR CÁLCULO (NOVA) ---
+# --- API 4: SALVAR CÁLCULO ---
 @calculadora_bp.route('/api/salvar_calculo', methods=['POST'])
 def salvar_calculo():
     data = request.json
     
-    # Validação básica
     if not data.get('produto_id'):
         return jsonify({'success': False, 'message': 'Selecione um produto existente para salvar.'})
 
@@ -140,7 +139,7 @@ def salvar_calculo():
         'preco': data.get('preco'),
         'margem': data.get('margem'),
         'lucro': data.get('lucro'),
-        'queima': 1 if data.get('queima') else 0 # Converte true/false para 1/0
+        'queima': 1 if data.get('queima') else 0
     }
     
     if run_command(sql, params):
@@ -149,10 +148,9 @@ def salvar_calculo():
         return jsonify({'success': False, 'message': 'Erro ao salvar no banco de dados.'})
 
 
-# --- API 5: HISTÓRICO DE COMPRAS (Essencial para o Modal) ---
+# --- API 5: HISTÓRICO DE COMPRAS ---
 @calculadora_bp.route('/api/historico_compras_calc/<int:prod_id>')
 def get_historico_compras_calc(prod_id):
-    # SQL Completa para garantir que o modal não trave
     sql = """
         SELECT 
             e.data_emissao, 
@@ -184,7 +182,6 @@ def get_historico_compras_calc(prod_id):
 
         df['data_emissao'] = df['data_emissao'].apply(fmt_data)
         
-        # Converte decimais para float
         cols_float = ['preco_partida', 'frete', 'icms', 'pis', 'cofins', 'custo_final']
         for col in cols_float:
             if col in df.columns:
