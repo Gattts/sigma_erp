@@ -35,233 +35,156 @@
     <div class="tab-pane fade show active" id="pills-calc">
       <div class="row g-3">
         <div class="col-lg-5">
-          <div class="calc-card p-4 card-scroll">
-            <div class="d-flex justify-content-center mb-4">
-              <div class="btn-group w-100" role="group">
+          <div class="calc-card p-4 card-scroll h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label class="small fw-bold text-muted mb-0"
+                ><i class="fa-solid fa-box me-1"></i> Seleção de Produto</label
+              >
+              <div class="form-check form-switch">
                 <input
-                  type="radio"
-                  class="btn-check"
-                  name="btnradio"
-                  id="mode-db"
-                  autocomplete="off"
-                  checked
-                  onchange="toggleMode('db')"
+                  class="form-check-input"
+                  type="checkbox"
+                  id="toggle-simulacao"
                 />
-                <label class="btn btn-outline-primary fw-bold" for="mode-db"
-                  >📦 Produto Existente</label
-                >
-                <input
-                  type="radio"
-                  class="btn-check"
-                  name="btnradio"
-                  id="mode-sim"
-                  autocomplete="off"
-                  onchange="toggleMode('sim')"
-                />
-                <label class="btn btn-outline-success fw-bold" for="mode-sim"
-                  >🧪 Simular Novo</label
+                <label
+                  class="form-check-label small fw-bold text-success"
+                  for="toggle-simulacao"
+                  >Simular Compra</label
                 >
               </div>
             </div>
 
-            <div id="container-db" class="mb-3">
-              <label class="small fw-bold text-muted mb-1"
-                >Buscar Produto</label
-              >
+            <div class="mb-4">
               <select id="selectProduto" class="form-select">
-                <option value="">Digite SKU ou Nome...</option>
+                <option value="">Selecione um produto do estoque...</option>
                 {% for p in produtos %}
                 <option value="{{ p.id }}">{{ p.sku }} - {{ p.nome }}</option>
                 {% endfor %}
               </select>
-            </div>
-
-            <div
-              id="container-sim"
-              class="mb-3 p-3 bg-panel rounded border border-success border-opacity-25"
-              style="display: none"
-            >
-              <h6 class="text-success fw-bold small mb-3">
-                <i class="fa-solid fa-flask"></i> Dados da Compra (Simulação)
-              </h6>
-              <div class="d-flex justify-content-between mb-2">
-                <div class="form-check form-switch">
-                  <input
-                    class="form-check-input sim-input"
-                    type="checkbox"
-                    id="sim-lucro-real"
-                  />
-                  <label class="form-check-label small" for="sim-lucro-real"
-                    >Lucro Real?</label
-                  >
-                </div>
-                <div class="form-check form-switch">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    id="sim-importacao"
-                    onchange="atualizarTaxasSimulacao()"
-                  />
-                  <label
-                    class="form-check-label small fw-bold text-primary"
-                    for="sim-importacao"
-                    >Importação?</label
-                  >
-                </div>
-              </div>
-              <div class="row g-2">
-                <div class="col-6">
-                  <label class="small text-muted">Preço Nota</label
-                  ><input
-                    type="number"
-                    id="sim-preco"
-                    class="form-control form-control-sm sim-input"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div class="col-6">
-                  <label class="small text-muted">Frete Rateio</label
-                  ><input
-                    type="number"
-                    id="sim-frete"
-                    class="form-control form-control-sm sim-input"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div class="col-4">
-                  <label class="small text-muted">IPI %</label
-                  ><input
-                    type="number"
-                    id="sim-ipi"
-                    class="form-control form-control-sm sim-input"
-                    placeholder="0"
-                  />
-                </div>
-                <div class="col-4">
-                  <label class="small text-muted">ICMS %</label
-                  ><input
-                    type="number"
-                    id="sim-icms"
-                    class="form-control form-control-sm sim-input"
-                    value="12"
-                  />
-                </div>
-                <div class="col-2">
-                  <label class="small text-muted" style="font-size: 0.7rem"
-                    >PIS %</label
-                  ><input
-                    type="number"
-                    id="sim-pis"
-                    class="form-control form-control-sm sim-input bg-light"
-                    value="1.65"
-                    readonly
-                  />
-                </div>
-                <div class="col-2">
-                  <label class="small text-muted" style="font-size: 0.7rem"
-                    >COFINS</label
-                  ><input
-                    type="number"
-                    id="sim-cofins"
-                    class="form-control form-control-sm sim-input bg-light"
-                    value="7.60"
-                    readonly
-                  />
-                </div>
-              </div>
-              <div class="mt-2 text-end">
-                <small class="text-muted fst-italic"
-                  >Custo calculado:
-                  <span id="sim-custo-display" class="fw-bold text-success"
-                    >R$ 0,00</span
+              <div
+                id="info-simulacao"
+                class="text-end mt-1"
+                style="display: none"
+              >
+                <small class="text-success fst-italic"
+                  ><i class="fa-solid fa-flask me-1"></i> Modo Simulação Ativo.
+                  <a href="#" onclick="abrirModalSimulacao()"
+                    >Editar valores</a
                   ></small
                 >
               </div>
             </div>
 
-            <div class="row g-2 mb-3 pt-2 border-top">
-              <div class="col-6">
-                <div
-                  class="d-flex justify-content-between align-items-center mb-1"
-                >
-                  <label class="small fw-bold text-muted mb-0"
-                    >Custo Final (R$)</label
+            <div class="p-3 bg-light rounded border mb-4">
+              <div class="row g-2">
+                <div class="col-6">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-1"
                   >
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary py-0 px-2 border-0"
-                    onclick="verHistorico()"
-                    id="btn-historico"
-                    title="Ver Histórico"
-                    style="font-size: 0.75rem"
-                  >
-                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Histórico
-                  </button>
-                </div>
-                <input
-                  type="number"
-                  id="custo"
-                  class="form-control bg-readonly fw-bold"
-                  readonly
-                />
-              </div>
-              <div class="col-6">
-                <label class="small fw-bold text-muted mb-1">Peso (Kg)</label>
-                <input
-                  type="number"
-                  id="peso"
-                  class="form-control bg-readonly"
-                  readonly
-                />
-              </div>
-            </div>
-
-            <h6 class="st-header mt-4">2. Configuração de Venda</h6>
-            <div class="mb-3">
-              <label class="small fw-bold text-muted">Regime Tributário</label>
-              <select
-                id="regime"
-                class="form-select"
-                onchange="atualizarUIPorRegime()"
-              >
-                <option value="Lucro Real" selected>Lucro Real</option>
-                <option value="Simples Nacional">Simples Nacional</option>
-                <option value="TTD 478">TTD 478 (SC)</option>
-                <option value="CPF">Pessoa Física (CPF)</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="small fw-bold text-muted">Canal de Venda</label>
-              <div class="row g-2 align-items-center">
-                <div class="col-8">
-                  <select id="canal" class="form-select">
-                    <option value="Mercado Livre">Mercado Livre</option>
-                    <option value="Shopee">Shopee</option>
-                    <option value="Site Próprio">Site Próprio</option>
-                  </select>
-                </div>
-                <div class="col-4">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="check-queima"
-                    />
-                    <label
-                      class="form-check-label small fw-bold text-danger"
-                      for="check-queima"
-                      >🔥 Queima?</label
+                    <label class="small fw-bold text-muted mb-0"
+                      >Custo Final</label
                     >
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link text-decoration-none p-0"
+                      onclick="verHistorico()"
+                      id="btn-historico"
+                      style="font-size: 0.7rem"
+                    >
+                      <i class="fa-solid fa-clock-rotate-left"></i> Histórico
+                    </button>
+                  </div>
+                  <div class="input-group input-group-sm">
+                    <span
+                      class="input-group-text border-0 bg-transparent fw-bold text-muted"
+                      >R$</span
+                    >
+                    <input
+                      type="number"
+                      id="custo"
+                      class="form-control fw-bold bg-transparent border-0 fs-5 text-dark p-0"
+                      readonly
+                      placeholder="0.00"
+                    />
                   </div>
                 </div>
+                <div class="col-6 border-start ps-3">
+                  <label class="small fw-bold text-muted mb-1">Peso (Kg)</label>
+                  <input
+                    type="number"
+                    id="peso"
+                    class="form-control fw-bold bg-transparent border-0 fs-5 text-dark p-0"
+                    readonly
+                    placeholder="0.000"
+                  />
+                </div>
               </div>
             </div>
 
-            <ul class="nav nav-tabs mb-3" id="modeTab" role="tablist">
+            <h6 class="st-header">Configuração de Venda</h6>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="small text-muted">Regime Tributário</label>
+                <select
+                  id="regime"
+                  class="form-select form-select-sm"
+                  onchange="atualizarUIPorRegime()"
+                >
+                  <option value="Lucro Real" selected>Lucro Real</option>
+                  <option value="Simples Nacional">Simples Nacional</option>
+                  <option value="TTD 478">TTD 478 (SC)</option>
+                  <option value="CPF">Pessoa Física</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="small text-muted">Canal</label>
+                <select id="canal" class="form-select form-select-sm">
+                  <option value="Mercado Livre">Mercado Livre</option>
+                  <option value="Shopee">Shopee</option>
+                  <option value="Site Próprio">Site Próprio</option>
+                </select>
+              </div>
+            </div>
+
+            <div
+              class="d-flex gap-3 mb-3 p-2 bg-white border rounded justify-content-center"
+            >
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="check-queima"
+                />
+                <label
+                  class="form-check-label small fw-bold text-danger"
+                  for="check-queima"
+                  >🔥 Queima</label
+                >
+              </div>
+              <div class="vr opacity-25"></div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="check-full"
+                />
+                <label
+                  class="form-check-label small fw-bold text-warning"
+                  for="check-full"
+                  ><i class="fa-solid fa-bolt me-1"></i> Full</label
+                >
+              </div>
+            </div>
+
+            <ul
+              class="nav nav-tabs nav-fill mb-3 small"
+              id="modeTab"
+              role="tablist"
+            >
               <li class="nav-item">
                 <button
-                  class="nav-link active"
+                  class="nav-link active py-1"
                   id="tab-margem"
                   data-bs-toggle="tab"
                   data-mode="margem"
@@ -272,7 +195,7 @@
               </li>
               <li class="nav-item">
                 <button
-                  class="nav-link"
+                  class="nav-link py-1"
                   id="tab-preco"
                   data-bs-toggle="tab"
                   data-mode="preco"
@@ -295,172 +218,217 @@
                   value="15.0"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-4">
                 <label class="small text-muted">Comissão (%)</label
                 ><input
                   type="number"
                   id="comissao"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   value="16.5"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-4">
                 <label class="small text-muted text-warning fw-bold"
                   >Logística (%)</label
                 ><input
                   type="number"
                   id="logistica"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   value="0"
                   placeholder="Ex: 5"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-4">
                 <label class="small text-muted" id="lbl-icms"
                   >ICMS Saída (%)</label
                 ><input
                   type="number"
                   id="icms"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   value="4.0"
                 />
               </div>
-              <div class="col-6">
-                <label class="small text-muted fw-bold text-danger"
-                  >DIFAL (%)</label
+              <div class="col-12">
+                <label class="small text-muted text-danger"
+                  >DIFAL (%)
+                  <span
+                    class="badge bg-light text-dark border ms-1"
+                    style="font-size: 0.6em"
+                    >MANUAL</span
+                  ></label
                 ><input
                   type="number"
                   id="difal"
-                  class="form-control"
+                  class="form-control form-control-sm"
                   value="0"
-                  placeholder="Ex: 6"
+                  placeholder="0"
                 />
               </div>
             </div>
+
             <button
               onclick="calcularVenda()"
-              class="btn btn-primary w-100 fw-bold py-2 mt-2 mb-3"
+              class="btn btn-primary w-100 fw-bold py-2 mt-auto"
             >
-              <i class="fa-solid fa-bolt me-2"></i> CALCULAR PREÇO
+              <i class="fa-solid fa-bolt me-2"></i> CALCULAR
             </button>
           </div>
         </div>
 
         <div class="col-lg-7">
           <div
-            class="calc-card p-4 bg-white card-scroll"
+            class="calc-card p-4 bg-white card-scroll h-100"
             id="result-box"
             style="opacity: 0.5; pointer-events: none"
           >
             <div class="text-center mb-4 border-bottom pb-4">
               <small
-                class="text-uppercase text-muted fw-bold ls-1"
-                id="lbl-resultado-titulo"
-                >Preço de Venda Sugerido</small
+                class="text-uppercase text-muted fw-bold ls-1 mb-2 d-block text-primary"
+                ><i class="fa-solid fa-file-invoice-dollar me-1"></i> Resumo da
+                Venda</small
               >
-              <div class="display-3 fw-bold mt-2" id="lbl-resultado-valor">
+
+              <div
+                class="display-3 fw-bold mt-2 text-dark"
+                id="lbl-resultado-valor"
+              >
                 R$ 0,00
               </div>
-              <div class="d-flex justify-content-center gap-3 mt-3">
-                <div class="badge bg-success fs-6 px-3 py-2 shadow-sm">
-                  Lucro Líquido: <span id="lbl-lucro">R$ 0,00</span>
-                </div>
-                <div class="badge bg-primary fs-6 px-3 py-2 shadow-sm">
-                  Margem Real: <span id="lbl-margem-real">0%</span>
-                </div>
-              </div>
-              <button
-                onclick="salvarCalculo()"
-                class="btn btn-outline-success btn-sm w-100 mt-3 fw-bold rounded-pill"
+
+              <div
+                class="d-flex flex-wrap justify-content-center gap-2 mt-4 align-items-center"
               >
-                <i class="fa-solid fa-floppy-disk me-2"></i> Salvar Este Preço
-              </button>
+                <div
+                  class="badge bg-success fs-6 py-2 px-3 shadow-sm fw-normal d-flex align-items-center"
+                  title="Lucro Líquido"
+                >
+                  Lucro:
+                  <span id="lbl-lucro" class="fw-bold ms-1">R$ 0,00</span>
+                </div>
+                <div
+                  class="badge bg-primary fs-6 py-2 px-3 shadow-sm fw-normal d-flex align-items-center"
+                  title="Margem Real"
+                >
+                  Margem:
+                  <span id="lbl-margem-real" class="fw-bold ms-1">0%</span>
+                </div>
+
+                <div
+                  id="badge-full-res"
+                  class="badge bg-warning text-dark fs-6 py-2 px-3 shadow-sm fw-bold border border-warning d-none align-items-center"
+                >
+                  <i class="fa-solid fa-bolt me-1"></i> FULL
+                </div>
+                <div
+                  id="badge-queima-res"
+                  class="badge bg-danger fs-6 py-2 px-3 shadow-sm fw-bold border border-danger d-none align-items-center"
+                >
+                  <i class="fa-solid fa-fire me-1"></i> QUEIMA
+                </div>
+
+                <button
+                  onclick="salvarCalculo()"
+                  class="btn btn-outline-success fw-bold rounded-pill shadow-sm d-flex align-items-center py-1 px-3"
+                  style="border-width: 2px; height: 32px"
+                  title="Salvar no Histórico"
+                >
+                  <i class="fa-solid fa-floppy-disk me-2"></i> Salvar
+                </button>
+              </div>
             </div>
 
-            <div class="row">
-              <div class="col-md-7 border-end">
-                <h6 class="st-header text-danger mb-3">
-                  <i class="fa-solid fa-list-ul me-2"></i> Detalhamento
+            <div class="row g-4">
+              <div class="col-md-6">
+                <h6 class="text-danger small fw-bold border-bottom pb-2 mb-3">
+                  Custos & Taxas
                 </h6>
-                <div class="mb-3">
-                  <small
-                    class="fw-bold text-muted text-uppercase"
-                    style="font-size: 0.7rem"
-                    >Impostos</small
-                  >
-                  <div class="result-row text-secondary">
-                    <span>(-) ICMS / Simples:</span
-                    ><span class="result-val" id="res-icms">R$ 0,00</span>
-                  </div>
-                  <div id="box-pis-cofins">
-                    <div class="result-row text-secondary">
-                      <span>(-) PIS (1.65%):</span
-                      ><span class="result-val" id="res-pis">R$ 0,00</span>
-                    </div>
-                    <div class="result-row text-secondary">
-                      <span>(-) COFINS (7.60%):</span
-                      ><span class="result-val" id="res-cofins">R$ 0,00</span>
-                    </div>
-                  </div>
-                  <div
-                    class="result-row text-secondary"
-                    id="row-difal"
-                    style="display: none"
-                  >
-                    <span class="fw-bold text-danger">(-) DIFAL:</span
-                    ><span class="result-val text-danger" id="res-difal"
-                      >R$ 0,00</span
-                    >
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <small
-                    class="fw-bold text-muted text-uppercase"
-                    style="font-size: 0.7rem"
-                    >Taxas & Logística</small
-                  >
-                  <div class="result-row text-danger fw-bold">
-                    <span>(-) Comissão:</span
-                    ><span class="result-val" id="res-comissao">R$ 0,00</span>
-                  </div>
-                  <div class="result-row text-warning fw-bold">
-                    <span>(-) Logística (%):</span
-                    ><span class="result-val" id="res-logistica">R$ 0,00</span>
-                  </div>
-                  <div class="result-row text-danger">
-                    <span>(-) Taxa Fixa:</span
-                    ><span class="result-val" id="res-taxa">R$ 0,00</span>
-                  </div>
-                  <div class="result-row text-danger">
-                    <span>(-) Frete / Envio:</span
-                    ><span class="result-val" id="res-frete">R$ 0,00</span>
-                  </div>
+                <div class="d-flex justify-content-between small mb-2">
+                  <span>Produto (Custo):</span
+                  ><span class="fw-bold" id="res-custo-prod">R$ 0,00</span>
                 </div>
                 <div
-                  class="result-row text-dark fw-bold border-top pt-2 mt-2"
-                  style="border-top: 2px solid #eee !important"
+                  class="d-flex justify-content-between small mb-1 text-danger"
                 >
-                  <span>(-) Custo do Produto:</span
-                  ><span class="result-val" id="res-custo-prod">R$ 0,00</span>
+                  <span>Comissão:</span><span id="res-comissao">R$ 0,00</span>
+                </div>
+                <div
+                  class="d-flex justify-content-between small mb-1 text-danger"
+                >
+                  <span>Taxa Fixa:</span><span id="res-taxa">R$ 0,00</span>
+                </div>
+                <div
+                  class="d-flex justify-content-between small mb-1 text-danger"
+                >
+                  <span>Frete:</span><span id="res-frete">R$ 0,00</span>
+                </div>
+                <div
+                  class="d-flex justify-content-between small mb-1 text-warning"
+                >
+                  <span>Logística:</span><span id="res-logistica">R$ 0,00</span>
                 </div>
               </div>
-              <div
-                class="col-md-5 ps-md-4 d-flex flex-column justify-content-center"
-              >
-                <div
-                  class="alert alert-secondary border-0 mb-3"
-                  id="box-custo-total"
+              <div class="col-md-6">
+                <h6
+                  class="text-secondary small fw-bold border-bottom pb-2 mb-3"
                 >
-                  <small class="d-block mb-1 opacity-75">Custo Total</small>
-                  <strong class="fs-5" id="res-custo-total">R$ 0,00</strong>
+                  Impostos
+                </h6>
+                <div class="d-flex justify-content-between small mb-2">
+                  <span>ICMS:</span><span id="res-icms">R$ 0,00</span>
                 </div>
-                <div class="alert alert-success border-0 mb-0 shadow-sm">
-                  <small class="d-block text-success mb-1 fw-bold"
-                    >Receita Líquida</small
+                <div id="box-pis-cofins">
+                  <div
+                    class="d-flex justify-content-between small mb-1 text-secondary"
                   >
-                  <strong class="fs-4 text-success" id="res-receita-liq"
-                    >R$ 0,00</strong
+                    <span>PIS:</span><span id="res-pis">R$ 0,00</span>
+                  </div>
+                  <div
+                    class="d-flex justify-content-between small mb-1 text-secondary"
                   >
+                    <span>COFINS:</span><span id="res-cofins">R$ 0,00</span>
+                  </div>
+                </div>
+                <div
+                  class="d-flex justify-content-between small mb-1 text-danger fw-bold"
+                  id="row-difal"
+                  style="display: none"
+                >
+                  <span>DIFAL:</span><span id="res-difal">R$ 0,00</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-2 mt-4">
+              <div class="col-6">
+                <div class="p-3 rounded border bg-light text-center">
+                  <small
+                    class="text-muted d-block text-uppercase fw-bold"
+                    style="font-size: 0.65rem"
+                    >Repasse Marketplace</small
+                  >
+                  <div
+                    class="fw-bold fs-5 text-secondary mt-1"
+                    id="res-repasse-mkt"
+                  >
+                    R$ 0,00
+                  </div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div
+                  class="p-3 rounded border bg-success bg-opacity-10 border-success text-center"
+                >
+                  <small
+                    class="text-success d-block text-uppercase fw-bold"
+                    style="font-size: 0.65rem"
+                    >Repasse Final (Real)</small
+                  >
+                  <div
+                    class="fw-bold fs-5 text-success mt-1"
+                    id="res-repasse-final"
+                  >
+                    R$ 0,00
+                  </div>
                 </div>
               </div>
             </div>
@@ -479,60 +447,42 @@
             class="btn btn-sm btn-outline-secondary"
             onclick="window.location.reload()"
           >
-            <i class="fa-solid fa-rotate me-1"></i> Atualizar Lista
+            <i class="fa-solid fa-rotate me-1"></i> Atualizar
           </button>
         </div>
-
         <div class="table-responsive">
-          <table
-            class="table table-hover align-middle"
-            style="font-size: 0.9rem"
-          >
+          <table class="table table-hover align-middle small">
             <thead class="bg-light">
               <tr>
-                <th class="text-adaptive ps-3">Data</th>
-                <th class="text-adaptive">Produto</th>
-                <th class="text-adaptive">Canal</th>
-                <th class="text-center text-adaptive">Custo Base</th>
-                <th class="text-end text-adaptive">Preço Venda</th>
-                <th class="text-center text-adaptive">Margem</th>
-                <th class="text-end text-adaptive pe-3">Lucro Líq.</th>
+                <th class="ps-3">Data</th>
+                <th>Produto</th>
+                <th>Canal</th>
+                <th class="text-center">Custo</th>
+                <th class="text-end">Preço</th>
+                <th class="text-center">Margem</th>
+                <th class="text-end pe-3">Lucro</th>
               </tr>
             </thead>
             <tbody>
               {% for h in historico_precos %}
               <tr class="{{ 'bg-danger bg-opacity-10' if h.queima else '' }}">
-                <td class="text-muted small ps-3 text-nowrap">
-                  {{ h.data_registro }}
-                </td>
+                <td class="text-muted ps-3">{{ h.data_registro }}</td>
                 <td>
-                  <div
-                    class="fw-bold text-adaptive text-truncate"
-                    style="max-width: 250px"
-                    title="{{ h.nome }}"
-                  >
+                  <div class="fw-bold text-truncate" style="max-width: 200px">
                     {{ h.nome }}
                   </div>
                   <span class="badge bg-light text-dark border"
                     >{{ h.sku }}</span
                   >
-                  {% if h.queima %}
-                  <span class="badge bg-danger ms-1">🔥 Queima</span> {% endif
-                  %}
                 </td>
-                <td><span class="badge badge-neutral">{{ h.canal }}</span></td>
-                <td class="text-center text-muted">
+                <td>{{ h.canal }}</td>
+                <td class="text-center">
                   R$ {{ "%.2f"|format(h.custo_base) }}
                 </td>
                 <td class="text-end fw-bold text-primary">
                   R$ {{ "%.2f"|format(h.preco_venda) }}
                 </td>
-                <td class="text-center">
-                  <span
-                    class="badge {{ 'bg-success' if h.margem_real > 10 else 'bg-warning text-dark' }}"
-                    >{{ h.margem_real }}%</span
-                  >
-                </td>
+                <td class="text-center">{{ h.margem_real }}%</td>
                 <td class="text-end fw-bold text-success pe-3">
                   R$ {{ "%.2f"|format(h.lucro_liquido) }}
                 </td>
@@ -540,8 +490,7 @@
               {% else %}
               <tr>
                 <td colspan="7" class="text-center py-5 text-muted">
-                  <i class="fa-solid fa-folder-open fs-3 mb-2 opacity-50"></i
-                  ><br />Nenhum cálculo salvo ainda.
+                  Nenhum registro.
                 </td>
               </tr>
               {% endfor %}
@@ -553,25 +502,159 @@
   </div>
 </div>
 
-<div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
+<div
+  class="modal fade"
+  id="modalSimulacao"
+  tabindex="-1"
+  data-bs-backdrop="static"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-success text-white">
+        <h6 class="modal-title fw-bold">
+          <i class="fa-solid fa-flask me-2"></i> Simular Custo de Compra
+        </h6>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          onclick="fecharModalSimulacao()"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div
+          class="alert alert-light border border-success border-opacity-25 small text-muted mb-3"
+        >
+          <i class="fa-solid fa-info-circle me-1"></i> Preencha os dados abaixo
+          para estimar o custo.
+        </div>
+        <div class="d-flex justify-content-between mb-3 bg-light p-2 rounded">
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="sim-lucro-real"
+              checked
+            />
+            <label class="form-check-label small fw-bold" for="sim-lucro-real"
+              >Lucro Real</label
+            >
+          </div>
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="sim-importacao"
+              onchange="atualizarTaxasSimulacao()"
+            />
+            <label
+              class="form-check-label small fw-bold text-primary"
+              for="sim-importacao"
+              >Importação Própria</label
+            >
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="small fw-bold text-muted">Preço Nota (R$)</label
+            ><input
+              type="number"
+              id="sim-preco"
+              class="form-control fw-bold"
+              placeholder="0.00"
+            />
+          </div>
+          <div class="col-6">
+            <label class="small fw-bold text-muted">Frete (R$)</label
+            ><input
+              type="number"
+              id="sim-frete"
+              class="form-control"
+              placeholder="0.00"
+            />
+          </div>
+          <div class="col-3">
+            <label class="small text-muted">IPI %</label
+            ><input
+              type="number"
+              id="sim-ipi"
+              class="form-control"
+              placeholder="0"
+            />
+          </div>
+          <div class="col-3">
+            <label class="small text-muted">ICMS %</label
+            ><input
+              type="number"
+              id="sim-icms"
+              class="form-control"
+              value="12"
+            />
+          </div>
+          <div class="col-3">
+            <label class="small text-muted">PIS %</label
+            ><input
+              type="number"
+              id="sim-pis"
+              class="form-control bg-light"
+              value="1.65"
+              readonly
+            />
+          </div>
+          <div class="col-3">
+            <label class="small text-muted">COFINS</label
+            ><input
+              type="number"
+              id="sim-cofins"
+              class="form-control bg-light"
+              value="7.60"
+              readonly
+            />
+          </div>
+          <div class="col-12">
+            <label class="small fw-bold text-muted">Peso Estimado (Kg)</label
+            ><input
+              type="number"
+              id="sim-peso"
+              class="form-control"
+              value="0.5"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        class="modal-footer bg-light d-flex justify-content-between align-items-center"
+      >
+        <div>
+          <small class="text-muted d-block" style="font-size: 0.75rem"
+            >CUSTO FINAL ESTIMADO</small
+          >
+          <span id="lbl-custo-simulado" class="fw-bold text-success fs-5"
+            >R$ 0,00</span
+          >
+        </div>
+        <button
+          type="button"
+          class="btn btn-success fw-bold px-4"
+          onclick="confirmarSimulacao()"
+        >
+          <i class="fa-solid fa-check me-2"></i> Usar Este Custo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalHistorico" tabindex="-1">
   <div
     class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
   >
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-panel border-bottom">
-        <div>
-          <h5 class="modal-title fw-bold text-adaptive" id="modalTitulo">
-            Histórico de Compras
-          </h5>
-          <p class="text-muted small m-0 mb-1">
-            Detalhamento completo de custos
-          </p>
-        </div>
+        <h5 class="modal-title fw-bold" id="modalTitulo">Histórico</h5>
         <button
           type="button"
           class="btn-close"
           data-bs-dismiss="modal"
-          aria-label="Close"
         ></button>
       </div>
       <div class="modal-body p-0">
@@ -583,31 +666,16 @@
           >
             <thead class="bg-light">
               <tr>
-                <th class="ps-4 text-adaptive">Data</th>
-                <th class="text-adaptive">Fornecedor / Nota</th>
-                <th class="text-center text-adaptive">Qtd</th>
-                <th class="text-end text-adaptive">Preço NF</th>
-                <th class="text-end text-adaptive">Frete</th>
-                <th class="text-adaptive">Impostos (%)</th>
-                <th class="text-end pe-4 text-adaptive">Custo Final</th>
+                <th class="ps-4">Data</th>
+                <th>Fornecedor</th>
+                <th class="text-center">Qtd</th>
+                <th class="text-end">Preço NF</th>
+                <th class="text-end pe-4">Custo Final</th>
               </tr>
             </thead>
             <tbody id="corpoTabelaHistorico"></tbody>
           </table>
         </div>
-        <div id="loadingHistorico" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="text-muted small mt-2">Carregando dados...</p>
-        </div>
-        <div id="vazioHistorico" class="text-center py-5" style="display: none">
-          <i class="fa-solid fa-ghost fs-1 text-muted opacity-25 mb-2"></i>
-          <p class="text-muted">Nenhum registro encontrado.</p>
-        </div>
-      </div>
-      <div class="modal-footer border-top bg-panel">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Fechar
-        </button>
       </div>
     </div>
   </div>
@@ -618,8 +686,6 @@
     id="liveToast"
     class="toast align-items-center text-white bg-success border-0"
     role="alert"
-    aria-live="assertive"
-    aria-atomic="true"
   >
     <div class="d-flex">
       <div class="toast-body fw-bold" id="toast-msg">Sucesso!</div>
@@ -627,7 +693,6 @@
         type="button"
         class="btn-close btn-close-white me-2 m-auto"
         data-bs-dismiss="toast"
-        aria-label="Close"
       ></button>
     </div>
   </div>
@@ -641,134 +706,96 @@
       placeholder: "Selecione um produto...",
     });
     let origemGlobal = "0";
-    let currentMode = "db";
+    let modoSimulacao = false;
     let calcTarget = "margem";
     let lastCalculatedData = null;
 
-    // --- FUNÇÃO CORRETORA DE NÚMEROS (Resolve o problema da vírgula) ---
     function parseLocalNum(val) {
       if (!val) return 0.0;
-      if (typeof val === "string") {
-        val = val.replace(",", ".");
-      }
+      if (typeof val === "string") val = val.replace(",", ".");
       return parseFloat(val) || 0.0;
     }
 
-    // --- FUNÇÃO SALVAR ---
-    window.salvarCalculo = function () {
-      if (!lastCalculatedData) {
-        alert("Realize um cálculo primeiro!");
-        return;
+    $("#toggle-simulacao").change(function () {
+      if (this.checked) {
+        modoSimulacao = true;
+        $("#selectProduto").prop("disabled", true);
+        $("#btn-historico").hide();
+        $("#info-simulacao").show();
+        abrirModalSimulacao();
+      } else {
+        modoSimulacao = false;
+        $("#selectProduto").prop("disabled", false);
+        $("#btn-historico").show();
+        $("#info-simulacao").hide();
+        $("#custo").val("");
+        $("#peso").val("");
+        $("#selectProduto").val("").trigger("change");
       }
-      if (currentMode !== "db") {
-        alert("Apenas cálculos de Produtos Existentes podem ser salvos.");
-        return;
-      }
+    });
 
+    window.abrirModalSimulacao = function () {
+      var modal = new bootstrap.Modal(
+        document.getElementById("modalSimulacao")
+      );
+      modal.show();
+    };
+
+    window.fecharModalSimulacao = function () {
+      if ($("#toggle-simulacao").is(":checked") && $("#custo").val() === "") {
+        $("#toggle-simulacao").prop("checked", false).trigger("change");
+      }
+      bootstrap.Modal.getInstance(
+        document.getElementById("modalSimulacao")
+      ).hide();
+    };
+
+    $("#sim-preco, #sim-frete, #sim-ipi, #sim-icms").on("input", function () {
       let payload = {
-        produto_id: $("#selectProduto").val(),
-        canal: $("#canal").val(),
-        custo: lastCalculatedData.custo,
-        preco:
-          calcTarget === "margem"
-            ? lastCalculatedData.preco
-            : parseLocalNum($("#input-target").val()),
-        margem: lastCalculatedData.margem,
-        lucro: lastCalculatedData.lucro,
-        queima: $("#check-queima").is(":checked"),
+        preco_nota: parseLocalNum($("#sim-preco").val()),
+        frete: parseLocalNum($("#sim-frete").val()),
+        ipi: parseLocalNum($("#sim-ipi").val()),
+        icms: parseLocalNum($("#sim-icms").val()),
+        pis: parseLocalNum($("#sim-pis").val()),
+        cofins: parseLocalNum($("#sim-cofins").val()),
+        regime: $("#sim-lucro-real").is(":checked") ? "Lucro Real" : "Simples",
       };
-
-      fetch("/api/salvar_calculo", {
+      fetch("/api/simular_custo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data.success) {
-            let toastEl = document.getElementById("liveToast");
-            new bootstrap.Toast(toastEl).show();
-            setTimeout(() => window.location.reload(), 1500);
-          } else {
-            alert("Erro: " + data.message);
-          }
+          $("#lbl-custo-simulado").text("R$ " + data.custo_final.toFixed(2));
+          $("#custo").data("simulado", data.custo_final);
         });
+    });
+
+    window.confirmarSimulacao = function () {
+      let custoSim = $("#custo").data("simulado") || 0;
+      let pesoSim = $("#sim-peso").val();
+      $("#custo").val(custoSim.toFixed(4));
+      $("#peso").val(pesoSim);
+      bootstrap.Modal.getInstance(
+        document.getElementById("modalSimulacao")
+      ).hide();
+      calcularVenda();
     };
 
-    // --- FUNÇÃO VER HISTÓRICO ---
-    window.verHistorico = function () {
-      if (currentMode !== "db") {
-        alert("Disponível apenas para Produtos Existentes.");
-        return;
+    window.atualizarTaxasSimulacao = function () {
+      if ($("#sim-importacao").is(":checked")) {
+        $("#sim-pis").val(2.1);
+        $("#sim-cofins").val(9.65);
+      } else {
+        $("#sim-pis").val(1.65);
+        $("#sim-cofins").val(7.6);
       }
-      let produtoId = $("#selectProduto").val();
-      if (!produtoId) {
-        alert("Selecione um produto!");
-        return;
-      }
-
-      let modal = new bootstrap.Modal(
-        document.getElementById("modalHistorico")
-      );
-      modal.show();
-      $("#modalTitulo").text($("#selectProduto option:selected").text());
-      $("#corpoTabelaHistorico").empty();
-      $("#tabelaHistorico").hide();
-      $("#vazioHistorico").hide();
-      $("#loadingHistorico").show();
-
-      fetch(`/api/historico_compras_calc/${produtoId}`) // Atualizado para a nova rota correta
-        .then((res) => res.json())
-        .then((data) => {
-          $("#loadingHistorico").hide();
-          if (data.length === 0) {
-            $("#vazioHistorico").show();
-            return;
-          }
-          $("#tabelaHistorico").show();
-          const fmt = new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-          data.forEach((item) => {
-            let tags = "";
-            if (item.lucro_real)
-              tags += `<span class="badge bg-success bg-opacity-10 text-success me-1 border border-success border-opacity-25">Real</span>`;
-            if (item.importacao_propria)
-              tags += `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Imp</span>`;
-            if (!tags)
-              tags = `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">Simples</span>`;
-            let row = `<tr><td class="ps-4 fw-bold text-muted text-nowrap">${
-              item.data_emissao
-            }</td><td><div class="fw-bold text-adaptive text-truncate" style="max-width: 200px;">${
-              item.fornecedor || "---"
-            }</div><div class="small text-muted mt-1"><i class="fa-solid fa-file-invoice me-1"></i> ${
-              item.nro_nf
-            } ${tags}</div></td><td class="text-center fw-bold text-adaptive">+${
-              item.quantidade
-            }</td><td class="text-end text-muted">${fmt.format(
-              item.preco_partida
-            )}</td><td class="text-end text-muted">${fmt.format(
-              item.frete
-            )}</td><td class="small text-muted">ICMS: ${
-              item.icms
-            }% <br> PIS/COFINS: ${item.pis}%/${
-              item.cofins
-            }%</td><td class="text-end fw-bold text-success pe-4">${fmt.format(
-              item.custo_final
-            )}</td></tr>`;
-            $("#corpoTabelaHistorico").append(row);
-          });
-        })
-        .catch((err) => {
-          $("#loadingHistorico").hide();
-          alert("Erro ao buscar histórico.");
-          console.error(err);
-        });
+      $("#sim-preco").trigger("input");
     };
 
-    // --- EVENTOS GERAIS ---
     $("#selectProduto").on("select2:select", function (e) {
+      if (modoSimulacao) return;
       let id = $(this).val();
       fetch(`/api/produto/${id}`)
         .then((res) => res.json())
@@ -781,6 +808,19 @@
         });
     });
 
+    $(".nav-link").click(function () {
+      $(".nav-link").removeClass("active");
+      $(this).addClass("active");
+      calcTarget = $(this).data("mode");
+      if (calcTarget === "margem") {
+        $("#label-target").text("Margem Desejada (%)");
+        $("#lbl-resultado-titulo").text("Preço de Venda Sugerido");
+      } else {
+        $("#label-target").text("Preço de Venda Manual (R$)");
+        $("#lbl-resultado-titulo").text("Margem Resultante");
+      }
+    });
+
     window.atualizarUIPorRegime = function () {
       let regime = $("#regime").val();
       let icmsInput = $("#icms");
@@ -788,6 +828,7 @@
       let lblIcms = $("#lbl-icms");
       icmsInput.prop("disabled", false);
       difalInput.prop("disabled", false);
+
       if (regime === "CPF") {
         icmsInput.val(0).prop("disabled", true);
         difalInput.val(0).prop("disabled", true);
@@ -798,12 +839,11 @@
       } else if (regime === "TTD 478") {
         lblIcms.text("ICMS (Travado TTD)");
         icmsInput.prop("disabled", true);
-        let origem =
-          currentMode === "db"
-            ? origemGlobal
-            : $("#sim-importacao").is(":checked")
+        let origem = modoSimulacao
+          ? $("#sim-importacao").is(":checked")
             ? "1"
-            : "0";
+            : "0"
+          : origemGlobal;
         let cod = origem.trim().charAt(0);
         if (["1", "2", "3", "5", "8"].includes(cod)) icmsInput.val(1.0);
         else icmsInput.val(2.0);
@@ -833,67 +873,17 @@
       else input.val(0.0);
     };
 
-    window.toggleMode = function (mode) {
-      currentMode = mode;
-      if (mode === "db") {
-        $("#container-db").show();
-        $("#container-sim").hide();
-        $("#btn-historico").show();
-        $("#custo").addClass("bg-readonly").prop("readonly", true);
-        $("#peso").addClass("bg-readonly").prop("readonly", true);
-      } else {
-        $("#container-db").hide();
-        $("#container-sim").show();
-        $("#btn-historico").hide();
-        $("#peso").removeClass("bg-readonly").prop("readonly", false);
-        $("#custo").val(0);
-      }
-      atualizarUIPorRegime();
-    };
-
-    window.atualizarTaxasSimulacao = function () {
-      let isImport = $("#sim-importacao").is(":checked");
-      if (isImport) {
-        $("#sim-pis").val(2.1);
-        $("#sim-cofins").val(9.65);
-      } else {
-        $("#sim-pis").val(1.65);
-        $("#sim-cofins").val(7.6);
-      }
-      atualizarUIPorRegime();
-    };
-
-    $(".sim-input").on("input change", function () {});
-
-    $(".nav-link").click(function () {
-      $(".nav-link").removeClass("active");
-      $(this).addClass("active");
-      calcTarget = $(this).data("mode");
-      if (calcTarget === "margem") {
-        $("#label-target").text("Margem Desejada (%)");
-        $("#lbl-resultado-titulo").text("Preço de Venda Sugerido");
-      } else {
-        $("#label-target").text("Preço de Venda Manual (R$)");
-        $("#lbl-resultado-titulo").text("Margem Resultante");
-      }
-    });
-
-    // --- FUNÇÃO DE CÁLCULO PRINCIPAL ---
     window.calcularVenda = function () {
-      // Usa parseLocalNum para garantir que o JS leia 0,88 como 0.88 e não corte
       let custo = parseLocalNum($("#custo").val());
+      if (custo <= 0) return;
 
-      if (custo <= 0) {
-        if (currentMode === "sim") alert("Preencha o custo!");
-        else alert("Selecione um produto!");
-        return;
-      }
-      let origem =
-        currentMode === "db"
-          ? origemGlobal
-          : $("#sim-importacao").is(":checked")
+      let origem = modoSimulacao
+        ? $("#sim-importacao").is(":checked")
           ? "1"
-          : "0";
+          : "0"
+        : origemGlobal;
+      let isQueima = $("#check-queima").is(":checked");
+      let isFull = $("#check-full").is(":checked");
 
       let payload = {
         custo: custo,
@@ -906,6 +896,7 @@
         regime: $("#regime").val(),
         logistica_pct: parseLocalNum($("#logistica").val()),
         origem_produto: origem,
+        is_full: isFull,
       };
 
       if (calcTarget === "margem")
@@ -947,8 +938,10 @@
           }
 
           if (data.val_difal > 0) {
-            $("#row-difal").show();
-            $("#res-difal").text(fmt.format(data.val_difal));
+            $("#row-difal")
+              .show()
+              .find("span:last")
+              .text(fmt.format(data.val_difal));
           } else $("#row-difal").hide();
 
           $("#res-comissao").text(fmt.format(data.val_comissao));
@@ -956,28 +949,106 @@
           $("#res-frete").text(fmt.format(data.frete));
           $("#res-taxa").text(fmt.format(data.taxa_fixa));
           $("#res-custo-prod").text(fmt.format(data.custo));
-          $("#res-custo-total").text(
-            fmt.format(
-              data.custo +
-                data.val_imposto_total +
-                data.val_comissao +
-                data.frete +
-                data.taxa_fixa +
-                data.val_logistica
-            )
-          );
-          $("#res-receita-liq").text(
-            fmt.format(
-              data.preco -
-                (data.val_imposto_total +
-                  data.val_comissao +
-                  data.frete +
-                  data.taxa_fixa +
-                  data.val_logistica)
-            )
-          );
+
+          // CÁLCULO DOS REPASSES (NOVO)
+          // 1. Repasse Marketplace (O que cai na conta) = Preço - (Comissão + Frete + Taxa Fixa + Logística)
+          let repasseMkt =
+            data.preco -
+            (data.val_comissao +
+              data.frete +
+              data.taxa_fixa +
+              data.val_logistica);
+
+          // 2. Repasse Final (O que sobra pra você) = Repasse Mkt - Impostos (ICMS + PIS + COFINS + DIFAL)
+          // data.val_imposto_total já soma todos os impostos
+          let repasseFinal = repasseMkt - data.val_imposto_total;
+
+          // Exibe na tela
+          $("#res-repasse-mkt").text(fmt.format(repasseMkt));
+          $("#res-repasse-final").text(fmt.format(repasseFinal));
+
+          // BADGES DE AVISO (VISUAL)
+          if (isQueima) $("#badge-queima-res").removeClass("d-none");
+          else $("#badge-queima-res").addClass("d-none");
+          if (isFull) $("#badge-full-res").removeClass("d-none");
+          else $("#badge-full-res").addClass("d-none");
         })
         .catch((err) => console.error(err));
+    };
+
+    window.salvarCalculo = function () {
+      if (!lastCalculatedData) {
+        alert("Realize um cálculo primeiro!");
+        return;
+      }
+
+      let payload = {
+        produto_id: modoSimulacao ? null : $("#selectProduto").val(),
+        canal: $("#canal").val(),
+        custo: lastCalculatedData.custo,
+        preco:
+          calcTarget === "margem"
+            ? lastCalculatedData.preco
+            : parseLocalNum($("#input-target").val()),
+        margem: lastCalculatedData.margem,
+        lucro: lastCalculatedData.lucro,
+        queima: $("#check-queima").is(":checked"),
+      };
+
+      if (!payload.produto_id) {
+        alert("Atenção: Apenas produtos cadastrados são salvos no histórico.");
+        return;
+      }
+
+      fetch("/api/salvar_calculo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            let toastEl = document.getElementById("liveToast");
+            new bootstrap.Toast(toastEl).show();
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            alert("Erro: " + data.message);
+          }
+        });
+    };
+
+    window.verHistorico = function () {
+      let id = $("#selectProduto").val();
+      var modal = new bootstrap.Modal(
+        document.getElementById("modalHistorico")
+      );
+      modal.show();
+      $("#corpoTabelaHistorico").html(
+        '<tr><td colspan="5" class="text-center">Carregando...</td></tr>'
+      );
+
+      fetch(`/api/historico_compras_calc/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          let html = "";
+          if (data.length === 0)
+            html =
+              '<tr><td colspan="5" class="text-center text-muted">Sem histórico.</td></tr>';
+          else {
+            data.forEach((i) => {
+              html += `<tr><td class="ps-4">${i.data_emissao}</td><td>${
+                i.fornecedor
+              }</td><td class="text-center">${
+                i.quantidade
+              }</td><td class="text-end">R$ ${i.preco_partida.toFixed(
+                2
+              )}</td><td class="text-end pe-4 fw-bold text-success">R$ ${i.custo_final.toFixed(
+                2
+              )}</td></tr>`;
+            });
+          }
+          $("#corpoTabelaHistorico").html(html);
+        });
     };
   });
 </script>

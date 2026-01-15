@@ -98,7 +98,8 @@ def calcular_cenario(margem_alvo, preco_manual, comissao, modo, canal, custo_bas
     rate_pis = 0.0165   
     rate_cofins = 0.0760 
     
-    fator_base = 1 - v_icms
+    # 1. Ajuste da Base Efetiva (Reversa): Desconta ICMS e DIFAL
+    fator_base = 1 - v_icms - v_difal
     pis_cofins_efetivo = fator_base * (rate_pis + rate_cofins)
     imposto_total_pct = v_icms + v_difal + pis_cofins_efetivo
     
@@ -169,7 +170,8 @@ def calcular_cenario(margem_alvo, preco_manual, comissao, modo, canal, custo_bas
     val_icms = preco * v_icms
     val_difal = preco * v_difal
     
-    base_pis_cofins_venda = preco - val_icms
+    # 2. Ajuste da Base PIS/COFINS (Final): Preço - ICMS - DIFAL
+    base_pis_cofins_venda = preco - val_icms - val_difal
     if base_pis_cofins_venda < 0: base_pis_cofins_venda = 0
     
     val_pis = base_pis_cofins_venda * rate_pis
@@ -197,5 +199,5 @@ def calcular_cenario(margem_alvo, preco_manual, comissao, modo, canal, custo_bas
         "val_cofins": round(val_cofins, 2), 
         "val_comissao": round(val_comissao, 2),
         "val_imposto_total": round(val_imposto_total, 2),
-        "val_logistica": round(val_armaz, 2) # <--- AQUI ESTAVA FALTANDO!
+        "val_logistica": round(val_armaz, 2)
     }

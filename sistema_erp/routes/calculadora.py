@@ -11,7 +11,7 @@ def index():
     produtos = run_query("SELECT id, sku, nome, origem FROM produtos ORDER BY nome")
     lista_produtos = produtos.to_dict('records') if not produtos.empty else []
 
-    # 2. Busca histórico de preços salvos
+    # 2. Busca histórico de preços salvos (Simulações salvas)
     sql_hist = """
         SELECT 
             ps.id,
@@ -72,12 +72,10 @@ def get_produto_info(prod_id):
     })
 
 
-# --- API 2: Simula Custo (Aba "Simular Novo") ---
+# --- API 2: Simula Custo ---
 @calculadora_bp.route('/api/simular_custo', methods=['POST'])
 def simular_custo_api():
     data = request.json
-    
-    # Define se é Lucro Real (Booleano) para a nova função de cálculo
     is_lucro_real = (data.get('regime') == 'Lucro Real')
 
     resultado = calcular_custo_aquisicao(
@@ -88,7 +86,7 @@ def simular_custo_api():
         icms_prod=data.get('icms', 0),
         pis=data.get('pis', 0),
         cofins=data.get('cofins', 0),
-        l_real=is_lucro_real  # <--- CORREÇÃO: Passa booleano, não string
+        l_real=is_lucro_real
     )
     return jsonify(resultado)
 
@@ -102,7 +100,6 @@ def calcular_ajax():
         'difal': data.get('difal', 0)
     }
     
-    # Chama a função calcular_cenario com os argumentos corretos do novo calculos.py
     resultado = calcular_cenario(
         margem_alvo=data.get('margem', 0),
         preco_manual=data.get('preco_manual', 0),
@@ -113,7 +110,7 @@ def calcular_ajax():
         impostos=impostos,
         peso=data.get('peso', 0),
         is_full=False,
-        armaz=data.get('logistica_pct', 0) # <--- CORREÇÃO: Mapeia logistica para armaz
+        armaz=data.get('logistica_pct', 0)
     )
     return jsonify(resultado)
 
@@ -148,27 +145,27 @@ def salvar_calculo():
         return jsonify({'success': False, 'message': 'Erro ao salvar no banco de dados.'})
 
 
-# --- API 5: HISTÓRICO DE COMPRAS ---
+# --- API 5: HISTÓRICO DE COMPRAS (CORRIGIDA) ---
+# Agora busca da tabela 'historico_compras' onde os dados estão realmente sendo salvos
 @calculadora_bp.route('/api/historico_compras_calc/<int:prod_id>')
 def get_historico_compras_calc(prod_id):
     sql = """
         SELECT 
-            e.data_emissao, 
-            e.numero_nf as nro_nf,
-            e.lucro_real,
-            COALESCE(f.nome_fantasia, 'Fornecedor N/D') as fornecedor, 
-            i.quantidade, 
-            i.valor_unitario as preco_partida,
-            COALESCE(i.frete_rateio, 0) as frete,
-            COALESCE(i.icms_percentual, 0) as icms,
-            COALESCE(i.pis_percentual, 0) as pis,
-            COALESCE(i.cofins_percentual, 0) as cofins,
-            COALESCE(i.custo_final, i.valor_unitario) as custo_final
-        FROM entrada_itens i
-        JOIN entradas e ON e.id = i.entrada_id
-        LEFT JOIN fornecedores f ON f.id = e.fornecedor_id
-        WHERE i.produto_id = :id
-        ORDER BY e.data_emissao DESC
+            data_compra as data_emissao, 
+            nro_nf,
+            lucro_real,
+            importacao_propria,
+            COALESCE(fornecedor, '---') as fornecedor, 
+            quantidade, 
+            preco_partida,
+            COALESCE(frete, 0) as frete,
+            COALESCE(icms, 0) as icms,
+            COALESCE(pis, 0) as pis,
+            COALESCE(cofins, 0) as cofins,
+            custo_final
+        FROM historico_compras
+        WHERE produto_id = :id
+        ORDER BY data_compra DESC
         LIMIT 5
     """
     try:
@@ -180,8 +177,10 @@ def get_historico_compras_calc(prod_id):
             try: return d.strftime('%d/%m/%Y')
             except: return str(d)[:10]
 
+        # Ajusta nome da coluna para bater com o JavaScript (data_emissao)
         df['data_emissao'] = df['data_emissao'].apply(fmt_data)
         
+        # Converte valores para float
         cols_float = ['preco_partida', 'frete', 'icms', 'pis', 'cofins', 'custo_final']
         for col in cols_float:
             if col in df.columns:

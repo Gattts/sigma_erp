@@ -21,7 +21,7 @@ def index():
 
     sql = """
         SELECT DISTINCT
-            p.id, p.sku, p.nome, p.fornecedor, p.preco_final, p.origem,
+            p.id, p.sku, p.nome, p.fornecedor, p.preco_final, p.origem, p.custo_expedicao,
             COALESCE(
                 (SELECT quantidade FROM historico_compras 
                  WHERE produto_id = p.id ORDER BY id DESC LIMIT 1), 
@@ -56,7 +56,30 @@ def index():
     return render_template('produtos.html', produtos=produtos_lista, fornecedores=lista_fornecedores)
 
 # ==============================================================================
-# 2. TELAS E AÇÕES DE CADASTRO (CRUD)
+# 2. NOVO RELATÓRIO: ESTOQUE POR FORNECEDOR
+# ==============================================================================
+@produtos_bp.route('/produtos/relatorio_estoque')
+def relatorio_estoque():
+    sql = """
+        SELECT 
+            COALESCE(fornecedor, 'Sem Fornecedor') as fornecedor,
+            COUNT(*) as qtd_skus,
+            SUM(quantidade) as qtd_total_itens,
+            SUM(quantidade * preco_final) as valor_total_estoque
+        FROM produtos
+        GROUP BY fornecedor
+        ORDER BY valor_total_estoque DESC
+    """
+    df = run_query(sql)
+    dados = df.to_dict('records') if not df.empty else []
+    
+    total_valor = df['valor_total_estoque'].sum() if not df.empty else 0.0
+    total_itens = df['qtd_total_itens'].sum() if not df.empty else 0
+    
+    return render_template('relatorio_estoque.html', dados=dados, total_valor=total_valor, total_itens=total_itens)
+
+# ==============================================================================
+# 3. TELAS E AÇÕES DE CADASTRO (CRUD)
 # ==============================================================================
 @produtos_bp.route('/produtos/novo')
 def novo():
@@ -81,19 +104,22 @@ def salvar():
         'peso': get_float('peso'), 'altura': get_float('altura'), 
         'largura': get_float('largura'), 'comprimento': get_float('comprimento'),
         'qtd_cx_master': get_int('qtd_cx_master'), 'altura_master': get_float('altura_master'), 
-        'largura_master': get_float('largura_master'), 'comprimento_master': get_float('comprimento_master')
+        'largura_master': get_float('largura_master'), 'comprimento_master': get_float('comprimento_master'),
+        'custo_exp': get_float('custo_expedicao') # Novo campo
     }
 
     sql = """
         INSERT INTO produtos (
             sku, nome, fornecedor, origem, preco_final, quantidade,
             peso, altura, largura, comprimento,
-            qtd_cx_master, altura_master, largura_master, comprimento_master
+            qtd_cx_master, altura_master, largura_master, comprimento_master,
+            custo_expedicao
         )
         VALUES (
             :sku, :nome, :fornecedor, :origem, 0.00, 0,
             :peso, :altura, :largura, :comprimento,
-            :qtd_cx_master, :altura_master, :largura_master, :comprimento_master
+            :qtd_cx_master, :altura_master, :largura_master, :comprimento_master,
+            :custo_exp
         )
     """
     if run_command(sql, params):
@@ -120,7 +146,8 @@ def editar():
         'peso': get_float('peso'), 'altura': get_float('altura'),
         'largura': get_float('largura'), 'comprimento': get_float('comprimento'),
         'qtd_cx_master': get_int('qtd_cx_master'), 'altura_master': get_float('altura_master'),
-        'largura_master': get_float('largura_master'), 'comprimento_master': get_float('comprimento_master')
+        'largura_master': get_float('largura_master'), 'comprimento_master': get_float('comprimento_master'),
+        'custo_exp': get_float('custo_expedicao') # Novo campo
     }
 
     sql = """
@@ -128,7 +155,8 @@ def editar():
             nome = :nome, sku = :sku, fornecedor = :fornecedor, origem = :origem,
             peso = :peso, altura = :altura, largura = :largura, comprimento = :comprimento,
             qtd_cx_master = :qtd_cx_master, altura_master = :altura_master,
-            largura_master = :largura_master, comprimento_master = :comprimento_master
+            largura_master = :largura_master, comprimento_master = :comprimento_master,
+            custo_expedicao = :custo_exp
         WHERE id = :id
     """
     if run_command(sql, params):
@@ -145,7 +173,7 @@ def excluir():
         return jsonify({'success': False, 'message': 'Erro ao excluir.'}), 500
 
 # ==============================================================================
-# 3. APIS DE DETALHES E HISTÓRICO
+# 4. APIS DE DETALHES E HISTÓRICO
 # ==============================================================================
 @produtos_bp.route('/api/produto/detalhes/<int:id>', methods=['GET'])
 def get_produto_detalhes(id):
@@ -153,7 +181,8 @@ def get_produto_detalhes(id):
         SELECT 
             id, sku, nome, fornecedor, quantidade, preco_final, origem,
             peso, altura, largura, comprimento,
-            qtd_cx_master, altura_master, largura_master, comprimento_master
+            qtd_cx_master, altura_master, largura_master, comprimento_master,
+            custo_expedicao
         FROM produtos WHERE id = :id
     """, {'id': id})
     
@@ -171,6 +200,8 @@ def get_produto_detalhes(id):
     p['altura_master'] = safe_float(p.get('altura_master'))
     p['largura_master'] = safe_float(p.get('largura_master'))
     p['comprimento_master'] = safe_float(p.get('comprimento_master'))
+    p['custo_expedicao'] = safe_float(p.get('custo_expedicao')) # Retorna novo campo
+    
     if not p.get('origem'): p['origem'] = '0'
 
     return jsonify(p)
@@ -211,7 +242,7 @@ def excluir_historico_item():
         return jsonify({'success': False, 'message': 'Erro ao excluir.'}), 500
 
 # ==============================================================================
-# 4. INTEGRAÇÃO BLING (VERSÃO LEVE - SEM SQLALCHEMY/PANDAS)
+# 5. INTEGRAÇÃO BLING (MANTIDA)
 # ==============================================================================
 @produtos_bp.route('/api/integracao/bling/importar', methods=['POST'])
 def importar_do_bling():
@@ -221,13 +252,9 @@ def importar_do_bling():
 
     creds = None
     
-    # 1. Conexão Direta e Leve com Banco ETL (Sem SQLAlchemy Engine)
+    # 1. Conexão Direta e Leve
     try:
-        # Parse da URL: mysql+pymysql://user:pass@host:port/db
-        # Remove prefixo se existir
         url_clean = etl_db_url.replace("mysql+pymysql://", "").replace("mysql://", "")
-        
-        # Separa credenciais
         if "@" in url_clean:
             auth, rest = url_clean.split("@")
             user, password = auth.split(":")
@@ -243,15 +270,13 @@ def importar_do_bling():
         else:
             raise ValueError("Formato de URL inválido")
 
-        # Conecta Leve
         conn = pymysql.connect(host=host, user=user, password=password, database=db_name, port=port, cursorclass=pymysql.cursors.DictCursor)
-        
         try:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT id, client_id, client_secret, refresh_token FROM empresas_bling WHERE ativo = 1 LIMIT 1")
                 creds = cursor.fetchone()
         finally:
-            conn.close() # Fecha rápido para liberar memória
+            conn.close()
 
         if not creds:
             return jsonify({'success': False, 'message': 'Nenhuma empresa ativa no banco ETL.'})
@@ -273,22 +298,21 @@ def importar_do_bling():
             access_token = data['access_token']
             new_refresh = data['refresh_token']
             
-            # Salva novo token (Conexão rápida de novo)
             try:
                 conn_up = pymysql.connect(host=host, user=user, password=password, database=db_name, port=port)
                 with conn_up.cursor() as cursor:
                     cursor.execute("UPDATE empresas_bling SET refresh_token = %s, access_token = %s, updated_at = NOW() WHERE id = %s", 
-                                  (new_refresh, access_token, creds['id']))
+                                   (new_refresh, access_token, creds['id']))
                 conn_up.commit()
                 conn_up.close()
-            except: pass # Se falhar o update, segue com o token em memória
+            except: pass 
         else:
             return jsonify({'success': False, 'message': f'Bling recusou: {resp.text}'})
             
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erro Auth: {str(e)}'})
 
-    # 3. Importação (Processamento Otimizado)
+    # 3. Importação
     try:
         r = requests.get('https://www.bling.com.br/Api/v3/produtos?limit=100&criterio=1&tipo=P', 
                          headers={'Authorization': f'Bearer {access_token}'}, timeout=20)
@@ -303,14 +327,12 @@ def importar_do_bling():
         for p in itens:
             sku = str(p.get('codigo', '')).strip()
             nome = str(p.get('nome', '')).strip()
-            # Tratamento seguro de preço
             try: preco = float(p.get('preco', 0))
             except: preco = 0.0
             
             origem = str(p.get('origem', '0'))
             if not sku or not nome: continue
 
-            # Busca ID local (Usa sua função run_query existente que é segura)
             existe = run_query("SELECT id FROM produtos WHERE sku = :sku", {'sku': sku})
             
             if existe.empty:

@@ -1,107 +1,149 @@
 <!DOCTYPE html>
 <html lang="pt-br" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sigma ERP 🚀</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
 
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+    />
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
     <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <a href="{{ url_for('index') }}" class="sidebar-brand">
-                <i class="fa-solid fa-cube text-primary"></i>
-                <span>Sigma ERP</span>
-            </a>
-            <button class="btn-toggle-sidebar" id="btnCollapse" title="Expandir/Contrair Menu">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-        </div>
+      <div class="sidebar-header">
+        <a href="{{ url_for('index') }}" class="sidebar-brand">
+          <i class="fa-solid fa-cube text-primary"></i>
+          <span>Sigma ERP</span>
+        </a>
+        <button
+          class="btn-toggle-sidebar"
+          id="btnCollapse"
+          title="Expandir/Contrair Menu"
+        >
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
 
-        <div class="sidebar-nav">
-            <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}" title="Dashboard">
-                <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
-            </a>
-            
-            <a href="{{ url_for('produtos.index') }}" class="{{ 'active' if 'produtos' in request.endpoint }}" title="Produtos">
-                <i class="fa-solid fa-box"></i> <span>Produtos</span>
-            </a>
-            <a href="{{ url_for('compras.nova_entrada') }}" class="{{ 'active' if 'compras' in request.endpoint }}" title="Entradas">
-                <i class="fa-solid fa-cart-plus"></i> <span>Entradas</span>
-            </a>
-            <a href="{{ url_for('calculadora.index') }}" class="{{ 'active' if 'calculadora' in request.endpoint }}" title="Calculadora">
-                <i class="fa-solid fa-calculator"></i> <span>Calculadora</span>
-            </a>
-            <a href="{{ url_for('financeiro.index') }}" class="{{ 'active' if 'financeiro' in request.endpoint }}" title="Financeiro">
-                <i class="fa-solid fa-money-bill-wave"></i> <span>Financeiro</span>
-            </a>
-        </div>
+      <div class="sidebar-nav">
+        <a
+          href="{{ url_for('index') }}"
+          class="{{ 'active' if request.endpoint == 'index' }}"
+          title="Dashboard"
+        >
+          <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
+        </a>
 
-        <div class="sidebar-footer">
-            <button class="btn-theme-toggle" id="btnTheme" title="Alternar Tema">
-                <i class="fa-solid fa-moon"></i> 
-            </button>
+        <a
+          href="{{ url_for('produtos.index') }}"
+          class="{{ 'active' if 'produtos' in request.endpoint }}"
+          title="Produtos"
+        >
+          <i class="fa-solid fa-box"></i> <span>Produtos</span>
+        </a>
+        <a
+          href="{{ url_for('compras.nova_entrada') }}"
+          class="{{ 'active' if 'compras' in request.endpoint }}"
+          title="Entradas"
+        >
+          <i class="fa-solid fa-cart-plus"></i> <span>Entradas</span>
+        </a>
+        <a
+          href="{{ url_for('calculadora.index') }}"
+          class="{{ 'active' if 'calculadora' in request.endpoint }}"
+          title="Calculadora"
+        >
+          <i class="fa-solid fa-calculator"></i> <span>Calculadora</span>
+        </a>
+        <a
+          href="{{ url_for('financeiro.index') }}"
+          class="{{ 'active' if 'financeiro' in request.endpoint }}"
+          title="Financeiro"
+        >
+          <i class="fa-solid fa-money-bill-wave"></i> <span>Financeiro</span>
+        </a>
+      </div>
 
-            <button class="btn-logout" title="Sair do Sistema">
-                <i class="fa-solid fa-right-from-bracket"></i> <span>Sair</span>
-            </button>
-        </div>
+      <div class="sidebar-footer">
+        <button class="btn-theme-toggle" id="btnTheme" title="Alternar Tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+
+        <button class="btn-logout" title="Sair do Sistema">
+          <i class="fa-solid fa-right-from-bracket"></i> <span>Sair</span>
+        </button>
+      </div>
     </nav>
 
-    <main class="content">
-        {% block content %}{% endblock %}
-    </main>
+    <main class="content">{% block content %}{% endblock %}</main>
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
-        $(document).ready(function() {
-            // 1. TEMA ESCURO
-            const themeBtn = $('#btnTheme');
-            const themeIcon = themeBtn.find('i');
-            
-            const savedTheme = localStorage.getItem('sigma_theme') || 'light';
-            $('html').attr('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
+      $(document).ready(function () {
+        // 1. TEMA ESCURO
+        const themeBtn = $("#btnTheme");
+        const themeIcon = themeBtn.find("i");
 
-            themeBtn.click(function() {
-                let current = $('html').attr('data-theme');
-                let newTheme = current === 'light' ? 'dark' : 'light';
-                $('html').attr('data-theme', newTheme);
-                localStorage.setItem('sigma_theme', newTheme);
-                updateThemeIcon(newTheme);
-            });
+        const savedTheme = localStorage.getItem("sigma_theme") || "light";
+        $("html").attr("data-theme", savedTheme);
+        updateThemeIcon(savedTheme);
 
-            function updateThemeIcon(theme) {
-                if(theme === 'dark') themeIcon.removeClass('fa-moon').addClass('fa-sun');
-                else themeIcon.removeClass('fa-sun').addClass('fa-moon');
-            }
-
-            // 2. SIDEBAR RETRÁTIL
-            const sidebar = $('#sidebar');
-            const collapseBtn = $('#btnCollapse');
-            
-            // Recupera estado salvo
-            const sidebarState = localStorage.getItem('sigma_sidebar') || 'expanded';
-            if(sidebarState === 'collapsed') sidebar.addClass('collapsed');
-
-            collapseBtn.click(function() {
-                sidebar.toggleClass('collapsed');
-                // Salva estado
-                localStorage.setItem('sigma_sidebar', sidebar.hasClass('collapsed') ? 'collapsed' : 'expanded');
-            });
+        themeBtn.click(function () {
+          let current = $("html").attr("data-theme");
+          let newTheme = current === "light" ? "dark" : "light";
+          $("html").attr("data-theme", newTheme);
+          localStorage.setItem("sigma_theme", newTheme);
+          updateThemeIcon(newTheme);
         });
+
+        function updateThemeIcon(theme) {
+          if (theme === "dark")
+            themeIcon.removeClass("fa-moon").addClass("fa-sun");
+          else themeIcon.removeClass("fa-sun").addClass("fa-moon");
+        }
+
+        // 2. SIDEBAR RETRÁTIL
+        const sidebar = $("#sidebar");
+        const collapseBtn = $("#btnCollapse");
+
+        // Recupera estado salvo
+        const sidebarState =
+          localStorage.getItem("sigma_sidebar") || "expanded";
+        if (sidebarState === "collapsed") sidebar.addClass("collapsed");
+
+        collapseBtn.click(function () {
+          sidebar.toggleClass("collapsed");
+          // Salva estado
+          localStorage.setItem(
+            "sigma_sidebar",
+            sidebar.hasClass("collapsed") ? "collapsed" : "expanded"
+          );
+        });
+      });
     </script>
     {% block scripts %}{% endblock %}
-</body>
+  </body>
 </html>
+>
